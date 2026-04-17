@@ -27,23 +27,24 @@ Every word spoken may tighten the noose.
 
 ## 项目结构
 
-\`\`\`
+```
 Assets/
-├── Scenes/        # Unity场景
-├── Scripts/       # C#代码
-├── Sprites/       # 图片素材
-│   ├── Backgrounds/
-│   ├── Characters/
-│   └── UI/
+├── Scenes/          # Unity场景
+├── Scripts/         # C#代码
+├── Sprites/
+│   ├── Backgrounds/ # 背景图
+│   ├── Characters/  # NPC立绘
+│   └── UI/          # 界面素材
 ├── Audio/
-│   ├── Music/
-│   └── SFX/
-└── Fonts/
+│   ├── Music/       # 背景音乐
+│   └── SFX/         # 音效
+└── Fonts/           # 字体
+
 Docs/
-├── GDD.md         # 游戏设计文档
-├── Prompts/       # System Prompt版本记录
-└── Art/           # 美术参考
-\`\`\`
+├── GDD.md           # 游戏设计文档
+├── Prompts/         # System Prompt版本记录
+└── Art/             # 美术参考
+```
 
 ## License
 
