@@ -1,3 +1,30 @@
+# ===== 安全 =====
 .env
+*.key
+*.secret
+
+# ===== Python =====
 __pycache__/
 *.pyc
+*.pyo
+
+# ===== Unity =====
+Crown/[Ll]ibrary/
+Crown/[Tt]emp/
+Crown/[Oo]bj/
+Crown/[Bb]uild/
+Crown/[Bb]uilds/
+Crown/[Ll]ogs/
+Crown/[Uu]ser[Ss]ettings/
+Crown/*.csproj
+Crown/*.sln
+Crown/.vs/
+
+# Unity保留（需要上传）
+!Crown/Assets/
+!Crown/Packages/
+!Crown/ProjectSettings/
+
+# ===== 系统文件 =====
+.DS_Store
+Thumbs.db
