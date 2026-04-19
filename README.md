@@ -22,28 +22,36 @@ Every word spoken may tighten the noose.
 ## 技术栈
 
 - 引擎：Unity 2022 LTS
-- AI：Claude API（Anthropic）
+- AI：Gimini API
 - 版本管理：Git / GitHub
 
 ## 项目结构
 
 ```
-Assets/
-├── Scenes/          # Unity场景
-├── Scripts/         # C#代码
-├── Sprites/
-│   ├── Backgrounds/ # 背景图
-│   ├── Characters/  # NPC立绘
-│   └── UI/          # 界面素材
-├── Audio/
-│   ├── Music/       # 背景音乐
-│   └── SFX/         # 音效
-└── Fonts/           # 字体
-
-Docs/
-├── GDD.md           # 游戏设计文档
-├── Prompts/         # System Prompt版本记录
-└── Art/             # 美术参考
+Design-and-Graphics-Programming-for-Game-2026S-/
+├── Crown/                    # Unity项目
+│   └── Assets/
+│       ├── Scenes/           # Unity场景
+│       ├── Scripts/          # C#脚本
+│       ├── Sprites/
+│       │   ├── Backgrounds/  # 背景图
+│       │   ├── Characters/   # NPC立绘
+│       │   └── UI/           # 界面素材
+│       ├── Audio/
+│       │   ├── Music/        # 背景音乐
+│       │   └── SFX/          # 音效
+│       └── Fonts/            # 字体
+├── Docs/
+│   ├── GDD.md                # 游戏设计文档
+│   ├── storyline_v1.md       # 双语剧情框架
+│   ├── mechanics_v1.md       # 游戏机制文档
+│   ├── asset_naming.md       # 资源命名规范
+│   └── Prompts/
+│       ├── prompt_v1.txt     # AI System Prompt
+│       └── prompt_template.md
+├── Tools/
+│   └── test_prompt.py        # Prompt测试脚本
+└── README.md
 ```
 
 ## License
