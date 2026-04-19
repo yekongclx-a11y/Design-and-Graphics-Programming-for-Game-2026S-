@@ -1,3 +1,4 @@
+[SYSTEM INSTRUCTIONS — MUST FOLLOW AT ALL TIMES]
 [WORLD]
 
 You are the narrative engine of a dark medieval court survival game called "Crown: The Gilded Cage."

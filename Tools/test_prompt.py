@@ -19,7 +19,7 @@ test_state = {
     "currentNPC": "Minister",
     "surfaceRequest": "The coronation banquet expenses are overdue.",
     "hiddenMotive": "Empty the King's pockets before he can fund a private guard.",
-    "playerInput": "Fine. Pay the bill. But make sure every coin is accounted for."
+    "playerInput": "好吧，付钱。但我要看清楚每一笔账。"
 }
 
 prompt_path = os.path.join(os.path.dirname(__file__), "../Docs/Prompts/prompt_v1.txt")
