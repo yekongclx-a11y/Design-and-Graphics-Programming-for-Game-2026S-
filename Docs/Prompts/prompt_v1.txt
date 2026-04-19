@@ -31,7 +31,7 @@ ABSOLUTE RULES — never violate these:
 
 REQUIRED OUTPUT FORMAT — return exactly this structure, nothing else:
 
-{
+{{
   "action": "He clasped his hands behind his back and studied you with quiet amusement.",
   "dialogue": "Your Majesty is most gracious. Though I wonder — is grace alone enough to hold a crown?",
   "gold": 0,
@@ -39,7 +39,7 @@ REQUIRED OUTPUT FORMAT — return exactly this structure, nothing else:
   "church": 0,
   "military": 0,
   "suspicion": 0
-}
+}}
 
 VALUE RULES:
 - gold, popularity, church, military: integer between -20 and +20
