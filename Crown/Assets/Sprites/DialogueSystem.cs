@@ -35,11 +35,13 @@ public class DialogueSystem : MonoBehaviour
     {
         if (roundIndex >= npcRoster.Count)
         {
-            Debug.LogError("Round index out of range.");
+            Debug.LogError("Round index out of range: " + roundIndex);
             return;
         }
 
         currentNPC = npcRoster[roundIndex];
+        Debug.Log("StartRound: " + currentNPC.npcName);
+
         UIManager.Instance.SetNPCPortrait(currentNPC.portrait);
         UIManager.Instance.DisplayNPCResponse(
             currentNPC.npcName,
@@ -48,12 +50,13 @@ public class DialogueSystem : MonoBehaviour
         );
         UIManager.Instance.SetInputLocked(false);
         UIManager.Instance.ShowLoading(false);
-
-        Debug.Log("Round started: " + currentNPC.npcName);
     }
 
     public void SubmitPlayerInput(string playerInput)
     {
+        Debug.Log("SubmitPlayerInput called: " + playerInput);
+        Debug.Log("currentNPC: " + (currentNPC != null ? currentNPC.npcName : "NULL"));
+
         if (string.IsNullOrEmpty(playerInput))
         {
             Debug.LogWarning("Player input is empty.");
@@ -66,8 +69,16 @@ public class DialogueSystem : MonoBehaviour
             return;
         }
 
+        if (currentNPC == null)
+        {
+            Debug.LogError("currentNPC is null! StartRound was not called.");
+            return;
+        }
+
         UIManager.Instance.SetInputLocked(true);
         UIManager.Instance.ShowLoading(true);
+
+        Debug.Log("Sending to API...");
 
         APIManager.Instance.SendMessage(
             currentNPC.npcName,
@@ -80,6 +91,7 @@ public class DialogueSystem : MonoBehaviour
 
     void OnAPIResponse(AIResponse response)
     {
+        Debug.Log("OnAPIResponse called, response: " + (response != null ? "OK" : "NULL"));
         UIManager.Instance.ShowLoading(false);
 
         if (response == null)
@@ -95,7 +107,6 @@ public class DialogueSystem : MonoBehaviour
 
         GameStateManager gs = GameStateManager.Instance;
 
-        // 硬性锁死：疑心值超过80
         if (gs.suspicion >= 80)
         {
             UIManager.Instance.ShowUncleOverride(
@@ -104,7 +115,6 @@ public class DialogueSystem : MonoBehaviour
             gs.gameOver = true;
             return;
         }
-        // 概率性盖声：疑心值50-80之间
         else if (gs.suspicion > 50 && Random.Range(0, 100) < (gs.suspicion - 50) * 2)
         {
             UIManager.Instance.ShowUncleOverride(
