@@ -81,7 +81,12 @@ public class UIManager : MonoBehaviour
 
     public void SetNPCPortrait(Sprite portrait)
     {
-        if (npcPortrait) npcPortrait.sprite = portrait;
+        Debug.Log("SetNPCPortrait called: " + (portrait != null ? portrait.name : "NULL"));
+        if (npcPortrait)
+        {
+            npcPortrait.sprite = portrait;
+            npcPortrait.color = portrait != null ? Color.white : Color.clear;
+        }
     }
 
     public void SetInputLocked(bool locked)
