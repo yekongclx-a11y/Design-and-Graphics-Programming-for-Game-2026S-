@@ -48,6 +48,10 @@ public class GameStateManager : MonoBehaviour
         military = Mathf.Clamp(military + militaryChange, 0, 100);
         suspicion = Mathf.Clamp(suspicion + suspicionChange, 0, 100);
 
+        int totalChange = goldChange + popularityChange + churchChange + militaryChange;
+        if (totalChange > 0) AudioManager.Instance.PlayValueUp();
+        else if (totalChange < 0) AudioManager.Instance.PlayValueDown();
+
         CheckDeathConditions();
     }
 
@@ -67,12 +71,14 @@ public class GameStateManager : MonoBehaviour
     void TriggerEnding(string message)
     {
         gameOver = true;
+        AudioManager.Instance.PlayGameOver();
         Debug.Log("ENDING: " + message);
     }
 
     void TriggerCoup()
     {
         gameOver = true;
+        AudioManager.Instance.PlayGameOver();
         Debug.Log("COUP: The Regent moves.");
     }
 

@@ -7,29 +7,36 @@ public class GameController : MonoBehaviour
     {
         UIManager.Instance.sendButton.onClick.AddListener(OnSendClicked);
         UIManager.Instance.playerInput.onSubmit.AddListener(OnInputSubmit);
+
+        if (UIManager.Instance.dismissButton != null)
+            UIManager.Instance.dismissButton.onClick.AddListener(OnDismissClicked);
+
+        AudioManager.Instance.PlayMainMusic();
         DialogueSystem.Instance.StartRound(0);
         UIManager.Instance.UpdateResourceBars();
     }
 
     void OnSendClicked()
     {
-        TMP_InputField inputField = UIManager.Instance.playerInput;
-        string input = inputField.text.Trim();
-        Debug.Log("Input text: " + input);
+        string input = UIManager.Instance.playerInput.text.Trim();
         if (!string.IsNullOrEmpty(input))
         {
             DialogueSystem.Instance.SubmitPlayerInput(input);
-            inputField.text = "";
+            UIManager.Instance.playerInput.text = "";
         }
     }
 
     void OnInputSubmit(string input)
     {
-        Debug.Log("Submit text: " + input);
         if (!string.IsNullOrEmpty(input.Trim()))
         {
             DialogueSystem.Instance.SubmitPlayerInput(input.Trim());
             UIManager.Instance.playerInput.text = "";
         }
+    }
+
+    void OnDismissClicked()
+    {
+        DialogueSystem.Instance.SubmitDismiss();
     }
 }

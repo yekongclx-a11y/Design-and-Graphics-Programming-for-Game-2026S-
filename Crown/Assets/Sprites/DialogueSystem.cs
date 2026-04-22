@@ -54,6 +54,8 @@ public class DialogueSystem : MonoBehaviour
         UIManager.Instance.ShowLoading(false);
         UIManager.Instance.ShowDismissButton(true);
 
+        AudioManager.Instance.PlayNpcEnter();
+
         Debug.Log($"Round {roundIndex + 1} started: {currentNPC.npcName} (max {currentNPC.maxTurns} turns)");
     }
 
@@ -129,7 +131,6 @@ public class DialogueSystem : MonoBehaviour
 
         GameStateManager gs = GameStateManager.Instance;
 
-        // 处理triggerEvent
         switch (response.triggerEvent)
         {
             case "coup_attempt":
@@ -184,8 +185,6 @@ public class DialogueSystem : MonoBehaviour
                 return;
         }
 
-        // triggerEvent == "none"
-        // 检查疑心值
         if (gs.suspicion >= 80)
         {
             UIManager.Instance.ShowUncleOverride(
@@ -205,7 +204,6 @@ public class DialogueSystem : MonoBehaviour
             return;
         }
 
-        // 正常显示回复
         UIManager.Instance.DisplayNPCResponse(
             currentNPC.npcName,
             response.action,
@@ -216,7 +214,6 @@ public class DialogueSystem : MonoBehaviour
                            response.suspicion);
         UIManager.Instance.UpdateResourceBars();
 
-        // 检查回合数
         if (currentTurnInRound > currentNPC.maxTurns)
         {
             EndRound();
