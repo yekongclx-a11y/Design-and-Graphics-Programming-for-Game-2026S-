@@ -52,7 +52,7 @@ public class APIManager : MonoBehaviour
 
     void LoadPrompt()
     {
-        string promptPath = Path.Combine(Application.dataPath, 
+        string promptPath = Path.Combine(Application.dataPath,
                             "../../Docs/Prompts/prompt_v1.txt");
         if (File.Exists(promptPath))
         {
@@ -67,14 +67,20 @@ public class APIManager : MonoBehaviour
 
     public void SendMessage(string npcName, string surfaceRequest,
                             string hiddenMotive, string playerInput,
+                            int currentTurn, int maxTurns,
+                            bool isDismiss,
                             System.Action<AIResponse> onComplete)
     {
         StartCoroutine(SendRequest(npcName, surfaceRequest,
-                                   hiddenMotive, playerInput, onComplete));
+                                   hiddenMotive, playerInput,
+                                   currentTurn, maxTurns,
+                                   isDismiss, onComplete));
     }
 
     IEnumerator SendRequest(string npcName, string surfaceRequest,
                              string hiddenMotive, string playerInput,
+                             int currentTurn, int maxTurns,
+                             bool isDismiss,
                              System.Action<AIResponse> onComplete)
     {
         GameStateManager gs = GameStateManager.Instance;
@@ -89,6 +95,8 @@ public class APIManager : MonoBehaviour
             .Replace("{currentNPC}", npcName)
             .Replace("{surfaceRequest}", surfaceRequest)
             .Replace("{hiddenMotive}", hiddenMotive)
+            .Replace("{currentTurn}", currentTurn.ToString())
+            .Replace("{maxTurns}", maxTurns.ToString())
             .Replace("{playerInput}", playerInput);
 
         var requestBody = new
@@ -124,6 +132,8 @@ public class APIManager : MonoBehaviour
                 string content = response.choices[0].message.content;
                 content = content.Replace("```json", "").Replace("```", "").Trim();
                 AIResponse aiResponse = JsonConvert.DeserializeObject<AIResponse>(content);
+                if (aiResponse.triggerEvent == null)
+                    aiResponse.triggerEvent = "none";
                 onComplete?.Invoke(aiResponse);
             }
             catch (System.Exception e)
@@ -151,6 +161,7 @@ public class AIResponse
     public int church;
     public int military;
     public int suspicion;
+    public string triggerEvent = "none";
 }
 
 [System.Serializable]

@@ -26,6 +26,7 @@ public class UIManager : MonoBehaviour
     [Header("Input")]
     public TMP_InputField playerInput;
     public Button sendButton;
+    public Button dismissButton;
 
     [Header("NPC Portrait")]
     public Image npcPortrait;
@@ -52,14 +53,6 @@ public class UIManager : MonoBehaviour
     {
         GameStateManager gs = GameStateManager.Instance;
 
-        // ===== 往下是植入的“窃听器” =====
-        Debug.Log($"【UI更新测试】UpdateResourceBars 被成功调用！此时底层数据 金币:{gs.gold}, 民心:{gs.popularity}");
-        if (goldBar == null) 
-        {
-            Debug.LogError("【致命错误】虽然你第一步检查了Inspector有东西，但代码运行到这里时，goldBar 居然是空的！引用丢失了！");
-        }
-        // ===== 往上是植入的“窃听器” =====
-
         if (goldBar) goldBar.value = gs.gold;
         if (popularityBar) popularityBar.value = gs.popularity;
         if (churchBar) churchBar.value = gs.church;
@@ -77,7 +70,13 @@ public class UIManager : MonoBehaviour
     {
         if (npcNameText) npcNameText.text = npcName;
         if (actionText) actionText.text = "(" + action + ")";
-        if (dialogueText) dialogueText.text = dialogue;
+        if (dialogueText)
+        {
+            if (string.IsNullOrEmpty(action))
+                dialogueText.text = dialogue;
+            else
+                dialogueText.text = "<i>(" + action + ")</i>\n" + dialogue;
+        }
     }
 
     public void SetNPCPortrait(Sprite portrait)
@@ -96,11 +95,16 @@ public class UIManager : MonoBehaviour
         if (loadingIndicator) loadingIndicator.SetActive(show);
     }
 
+    public void ShowDismissButton(bool show)
+    {
+        if (dismissButton) dismissButton.gameObject.SetActive(show);
+    }
+
     public void ShowUncleOverride(string uncleMessage)
     {
         if (npcNameText) npcNameText.text = "The Regent";
-        if (actionText) actionText.text = "(He steps forward, silencing the room.)";
-        if (dialogueText) dialogueText.text = uncleMessage;
+        if (dialogueText) dialogueText.text = "<i>(He steps forward, silencing the room.)</i>\n" + uncleMessage;
         SetInputLocked(true);
+        ShowDismissButton(false);
     }
 }

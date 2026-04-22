@@ -38,8 +38,8 @@ public class GameStateManager : MonoBehaviour
         }
     }
 
-    public void UpdateResources(int goldChange, int popularityChange, 
-                                 int churchChange, int militaryChange, 
+    public void UpdateResources(int goldChange, int popularityChange,
+                                 int churchChange, int militaryChange,
                                  int suspicionChange)
     {
         gold = Mathf.Clamp(gold + goldChange, 0, 100);
@@ -68,14 +68,12 @@ public class GameStateManager : MonoBehaviour
     {
         gameOver = true;
         Debug.Log("ENDING: " + message);
-        // 后续接EndingManager
     }
 
     void TriggerCoup()
     {
         gameOver = true;
         Debug.Log("COUP: The Regent moves.");
-        // 后续接EndingManager
     }
 
     public void NextRound()
@@ -88,7 +86,7 @@ public class GameStateManager : MonoBehaviour
         currentRound++;
     }
 
-    void CheckVictory()
+    public void CheckVictory()
     {
         if (gold > 20 && gold < 80 &&
             popularity > 20 && popularity < 80 &&

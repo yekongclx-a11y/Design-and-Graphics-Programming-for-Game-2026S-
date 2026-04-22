@@ -12,12 +12,15 @@ public class DialogueSystem : MonoBehaviour
         public string surfaceRequest;
         public string hiddenMotive;
         public Sprite portrait;
+        public int maxTurns = 3;
     }
 
     [Header("NPC Roster")]
     public List<NPCData> npcRoster = new List<NPCData>();
 
     private NPCData currentNPC;
+    private int currentRoundIndex = 0;
+    private int currentTurnInRound = 1;
 
     void Awake()
     {
@@ -35,28 +38,27 @@ public class DialogueSystem : MonoBehaviour
     {
         if (roundIndex >= npcRoster.Count)
         {
-            Debug.LogError("Round index out of range: " + roundIndex);
+            Debug.LogError("Round index out of range.");
             return;
         }
 
+        currentRoundIndex = roundIndex;
+        currentTurnInRound = 1;
         currentNPC = npcRoster[roundIndex];
-        Debug.Log("StartRound: " + currentNPC.npcName);
 
-        UIManager.Instance.SetNPCPortrait(currentNPC.portrait);
-        UIManager.Instance.DisplayNPCResponse(
-            currentNPC.npcName,
-            "",
-            "..."
-        );
+        if (currentNPC.portrait != null)
+            UIManager.Instance.SetNPCPortrait(currentNPC.portrait);
+
+        UIManager.Instance.DisplayNPCResponse(currentNPC.npcName, "", "...");
         UIManager.Instance.SetInputLocked(false);
         UIManager.Instance.ShowLoading(false);
+        UIManager.Instance.ShowDismissButton(true);
+
+        Debug.Log($"Round {roundIndex + 1} started: {currentNPC.npcName} (max {currentNPC.maxTurns} turns)");
     }
 
     public void SubmitPlayerInput(string playerInput)
     {
-        Debug.Log("SubmitPlayerInput called: " + playerInput);
-        Debug.Log("currentNPC: " + (currentNPC != null ? currentNPC.npcName : "NULL"));
-
         if (string.IsNullOrEmpty(playerInput))
         {
             Debug.LogWarning("Player input is empty.");
@@ -69,29 +71,48 @@ public class DialogueSystem : MonoBehaviour
             return;
         }
 
-        if (currentNPC == null)
-        {
-            Debug.LogError("currentNPC is null! StartRound was not called.");
-            return;
-        }
-
         UIManager.Instance.SetInputLocked(true);
+        UIManager.Instance.ShowDismissButton(false);
         UIManager.Instance.ShowLoading(true);
-
-        Debug.Log("Sending to API...");
 
         APIManager.Instance.SendMessage(
             currentNPC.npcName,
             currentNPC.surfaceRequest,
             currentNPC.hiddenMotive,
             playerInput,
+            currentTurnInRound,
+            currentNPC.maxTurns,
+            false,
+            OnAPIResponse
+        );
+
+        currentTurnInRound++;
+    }
+
+    public void SubmitDismiss()
+    {
+        if (GameStateManager.Instance.gameOver) return;
+
+        UIManager.Instance.SetInputLocked(true);
+        UIManager.Instance.ShowDismissButton(false);
+        UIManager.Instance.ShowLoading(true);
+
+        string dismissInput = "The King says nothing and waves his hand in dismissal. Give your parting action, a final line, and settle the values.";
+
+        APIManager.Instance.SendMessage(
+            currentNPC.npcName,
+            currentNPC.surfaceRequest,
+            currentNPC.hiddenMotive,
+            dismissInput,
+            currentTurnInRound,
+            currentNPC.maxTurns,
+            true,
             OnAPIResponse
         );
     }
 
     void OnAPIResponse(AIResponse response)
     {
-        Debug.Log("OnAPIResponse called, response: " + (response != null ? "OK" : "NULL"));
         UIManager.Instance.ShowLoading(false);
 
         if (response == null)
@@ -102,11 +123,69 @@ public class DialogueSystem : MonoBehaviour
                 "Something is wrong. The court falls silent."
             );
             UIManager.Instance.SetInputLocked(false);
+            UIManager.Instance.ShowDismissButton(true);
             return;
         }
 
         GameStateManager gs = GameStateManager.Instance;
 
+        // 处理triggerEvent
+        switch (response.triggerEvent)
+        {
+            case "coup_attempt":
+                Debug.Log("TRIGGER: coup_attempt");
+                gs.UpdateResources(0, 0, 0, 0, 20);
+                UIManager.Instance.DisplayNPCResponse(
+                    currentNPC.npcName,
+                    response.action,
+                    response.dialogue
+                );
+                UIManager.Instance.UpdateResourceBars();
+                UIManager.Instance.SetInputLocked(false);
+                UIManager.Instance.ShowDismissButton(true);
+                return;
+
+            case "game_over":
+                Debug.Log("TRIGGER: game_over");
+                UIManager.Instance.DisplayNPCResponse(
+                    currentNPC.npcName,
+                    response.action,
+                    response.dialogue
+                );
+                gs.UpdateResources(response.gold, response.popularity,
+                                   response.church, response.military,
+                                   response.suspicion);
+                UIManager.Instance.UpdateResourceBars();
+                gs.gameOver = true;
+                return;
+
+            case "uncle_intervene":
+                Debug.Log("TRIGGER: uncle_intervene");
+                UIManager.Instance.ShowUncleOverride(
+                    "His Majesty seems fatigued. Allow me to respond on his behalf."
+                );
+                gs.UpdateResources(-5, -5, -5, -5, 20);
+                UIManager.Instance.UpdateResourceBars();
+                EndRound();
+                return;
+
+            case "end_round":
+                Debug.Log("TRIGGER: end_round");
+                UIManager.Instance.DisplayNPCResponse(
+                    currentNPC.npcName,
+                    response.action,
+                    response.dialogue
+                );
+                gs.UpdateResources(response.gold, response.popularity,
+                                   response.church, response.military,
+                                   response.suspicion);
+                UIManager.Instance.UpdateResourceBars();
+                EndRound();
+                return;
+        }
+
+        // triggerEvent == "none"
+        // 检查疑心值
         if (gs.suspicion >= 80)
         {
             UIManager.Instance.ShowUncleOverride(
@@ -121,29 +200,52 @@ public class DialogueSystem : MonoBehaviour
                 "His Majesty seems fatigued. Allow me to respond on his behalf."
             );
             gs.UpdateResources(-5, -5, -5, -5, 5);
+            UIManager.Instance.UpdateResourceBars();
+            EndRound();
+            return;
+        }
+
+        // 正常显示回复
+        UIManager.Instance.DisplayNPCResponse(
+            currentNPC.npcName,
+            response.action,
+            response.dialogue
+        );
+        gs.UpdateResources(response.gold, response.popularity,
+                           response.church, response.military,
+                           response.suspicion);
+        UIManager.Instance.UpdateResourceBars();
+
+        // 检查回合数
+        if (currentTurnInRound > currentNPC.maxTurns)
+        {
+            EndRound();
         }
         else
         {
-            UIManager.Instance.DisplayNPCResponse(
-                currentNPC.npcName,
-                response.action,
-                response.dialogue
-            );
-            gs.UpdateResources(
-                response.gold,
-                response.popularity,
-                response.church,
-                response.military,
-                response.suspicion
-            );
+            if (!gs.gameOver)
+            {
+                UIManager.Instance.SetInputLocked(false);
+                UIManager.Instance.ShowDismissButton(true);
+            }
         }
+    }
 
-        UIManager.Instance.UpdateResourceBars();
+    void EndRound()
+    {
+        currentTurnInRound = 1;
+        UIManager.Instance.ShowDismissButton(false);
 
-        if (!gs.gameOver)
+        if (GameStateManager.Instance.gameOver) return;
+
+        int nextIndex = currentRoundIndex + 1;
+        if (nextIndex >= npcRoster.Count)
         {
-            gs.NextRound();
-            UIManager.Instance.SetInputLocked(false);
+            GameStateManager.Instance.CheckVictory();
+            return;
         }
+
+        GameStateManager.Instance.NextRound();
+        StartRound(nextIndex);
     }
 }
