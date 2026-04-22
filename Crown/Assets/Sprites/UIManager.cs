@@ -52,6 +52,14 @@ public class UIManager : MonoBehaviour
     {
         GameStateManager gs = GameStateManager.Instance;
 
+        // ===== 往下是植入的“窃听器” =====
+        Debug.Log($"【UI更新测试】UpdateResourceBars 被成功调用！此时底层数据 金币:{gs.gold}, 民心:{gs.popularity}");
+        if (goldBar == null) 
+        {
+            Debug.LogError("【致命错误】虽然你第一步检查了Inspector有东西，但代码运行到这里时，goldBar 居然是空的！引用丢失了！");
+        }
+        // ===== 往上是植入的“窃听器” =====
+
         if (goldBar) goldBar.value = gs.gold;
         if (popularityBar) popularityBar.value = gs.popularity;
         if (churchBar) churchBar.value = gs.church;
