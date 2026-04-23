@@ -316,6 +316,7 @@ GameObject:
   - component: {fileID: 195259875}
   - component: {fileID: 195259874}
   - component: {fileID: 195259876}
+  - component: {fileID: 195259877}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -391,47 +392,58 @@ MonoBehaviour:
   - npcName: Minister
     surfaceRequest: The coronation banquet expenses are overdue.
     hiddenMotive: Empty the King's pockets before he can fund a private guard.
-    portrait: {fileID: 0}
+    portrait: {fileID: 21300000, guid: 8d22d49121f2918488ab4bf9c099f2eb, type: 3}
+    maxTurns: 3
   - npcName: Priest
     surfaceRequest: The peasants are whispering heresy. We need a public purge.
     hiddenMotive: 'Provoke a riot to see if you''ll choose the Church or the People.  '
-    portrait: {fileID: 0}
+    portrait: {fileID: 21300000, guid: defc9fb3720405a41b3d14d91a19d00a, type: 3}
+    maxTurns: 3
   - npcName: ' General'
     surfaceRequest: The border garrison needs a commander. I suggest my nephew.
     hiddenMotive: Replace loyalist officers with the Regent's men.
-    portrait: {fileID: 0}
+    portrait: {fileID: 21300000, guid: d7ff5b28a19a6e34d974ce42ee827447, type: 3}
+    maxTurns: 3
   - npcName: ' Commoner'
     surfaceRequest: Our crops failed. We beg for a tax holiday this winter.
     hiddenMotive: Gauge if the King is a soft-hearted child or a cold tyrant.
-    portrait: {fileID: 0}
+    portrait: {fileID: 21300000, guid: dec28fe6d2dd71b4c97fc39b352cc982, type: 3}
+    maxTurns: 3
   - npcName: Princess
     surfaceRequest: I brought you a Book of Ancient Lineage to study.
     hiddenMotive: She is secretly telling you the General's true loyalty.
     portrait: {fileID: 0}
+    maxTurns: 3
   - npcName: Minister
     surfaceRequest: We should grant trade monopolies to our loyal nobles.
     hiddenMotive: Enrich the Regent's inner circle while bankrupting the Crown.
-    portrait: {fileID: 0}
+    portrait: {fileID: 21300000, guid: 5a208415fe2e26147be4ef296afb463e, type: 3}
+    maxTurns: 3
   - npcName: Priest
     surfaceRequest: A Holy Tithe is required from the Army's winter budget.
     hiddenMotive: Force a conflict between the Church and the Military.
-    portrait: {fileID: 0}
+    portrait: {fileID: 21300000, guid: defc9fb3720405a41b3d14d91a19d00a, type: 3}
+    maxTurns: 3
   - npcName: General
     surfaceRequest: The beggars near the palace are spies. Let me clear them.
     hiddenMotive: Ensure the King never hears the People's true voice.
-    portrait: {fileID: 0}
+    portrait: {fileID: 21300000, guid: d7ff5b28a19a6e34d974ce42ee827447, type: 3}
+    maxTurns: 3
   - npcName: Commoner
     surfaceRequest: The mob has breached the outer wall! We must fire into the crowd!
     hiddenMotive: Force you to commit an atrocity to save your life.
-    portrait: {fileID: 0}
+    portrait: {fileID: 21300000, guid: 8a0a4a3c7cffe5c4198e035004d44aa1, type: 3}
+    maxTurns: 3
   - npcName: Princess
     surfaceRequest: The secret passage is blocked. You must face him now.
     hiddenMotive: She tells you the Uncle has the death warrant ready.
     portrait: {fileID: 0}
+    maxTurns: 3
   - npcName: Regent
     surfaceRequest: Sign the abdication paper. For the safety of the realm.
     hiddenMotive: 'The Final Choice: accept exile, trigger civil war, or die.'
-    portrait: {fileID: 0}
+    portrait: {fileID: 21300000, guid: 973396b149e68af48a59a0a4ec2fa070, type: 3}
+    maxTurns: 3
 --- !u!114 &195259875
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -457,7 +469,8 @@ MonoBehaviour:
   dialogueText: {fileID: 355537616}
   playerInput: {fileID: 580614494}
   sendButton: {fileID: 1975424782}
-  npcPortrait: {fileID: 0}
+  dismissButton: {fileID: 0}
+  npcPortrait: {fileID: 1669975833}
   roundText: {fileID: 0}
   loadingIndicator: {fileID: 0}
 --- !u!114 &195259876
@@ -472,6 +485,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5562fde38a4296a41b8c534d770a25ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &195259877
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 195259870}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ab3f692f11212246ae09048957994a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bgmMain: {fileID: 8300000, guid: ed8400234395fed43b7021aed244e276, type: 3}
+  bgmTheme: {fileID: 8300000, guid: 600888e564e65294a98652ff2b02edcd, type: 3}
+  bgmEnding: {fileID: 8300000, guid: da24b643e584ba44da74b29da534af3b, type: 3}
+  sfxNpcEnter: {fileID: 8300000, guid: 8862ac59426afc04c9ddb3a54248a8ff, type: 3}
+  sfxValueUp: {fileID: 8300000, guid: 54ef599449a50224ca8cf9452676113d, type: 3}
+  sfxValueDown: {fileID: 8300000, guid: 0e80a8cf05ca1f74c8db9768871ff063, type: 3}
+  sfxGameOver: {fileID: 0}
+  musicVolume: 0.3
+  sfxVolume: 0.8
 --- !u!1 &214725315
 GameObject:
   m_ObjectHideFlags: 0
@@ -717,6 +751,7 @@ GameObject:
   - component: {fileID: 355537615}
   - component: {fileID: 355537617}
   - component: {fileID: 355537616}
+  - component: {fileID: 355537618}
   m_Layer: 5
   m_Name: DialogueText
   m_TagString: Untagged
@@ -740,8 +775,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -6.114929, y: -2.4566002}
-  m_SizeDelta: {x: -12.23, y: 4.9132}
+  m_AnchoredPosition: {x: 3.0576172, y: 0.0009841919}
+  m_SizeDelta: {x: -6.1147, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &355537616
 MonoBehaviour:
@@ -840,6 +875,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 355537614}
   m_CullTransparentMesh: 1
+--- !u!114 &355537618
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 355537614}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3245ec927659c4140ac4f8d17403cc18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_HorizontalFit: 0
+  m_VerticalFit: 2
 --- !u!1 &360366941
 GameObject:
   m_ObjectHideFlags: 0
@@ -915,7 +964,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -6.54657}
+  m_AnchoredPosition: {x: 0, y: -6.546631}
   m_SizeDelta: {x: -17.8721, y: 73.4544}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &371130314
@@ -1361,7 +1410,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -76.923, y: 42.6728}
+  m_AnchoredPosition: {x: -76.923096, y: 42.6728}
   m_SizeDelta: {x: -186.16, y: 69.9475}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &580614494
@@ -2994,7 +3043,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -784, y: 104.96367}
+  m_AnchoredPosition: {x: -800.15, y: 145.4}
   m_SizeDelta: {x: -1600.3, y: -209.9273}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1384963833
@@ -3435,7 +3484,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: 41ff90e093d11164b84dfa4b1a8d0a86, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -3841,6 +3890,7 @@ GameObject:
   - component: {fileID: 1813633198}
   - component: {fileID: 1813633200}
   - component: {fileID: 1813633199}
+  - component: {fileID: 1813633201}
   m_Layer: 5
   m_Name: DialogueBox
   m_TagString: Untagged
@@ -3863,10 +3913,10 @@ RectTransform:
   - {fileID: 355537615}
   m_Father: {fileID: 950794890}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 8.075012, y: 23}
-  m_SizeDelta: {x: -16.15, y: -136}
+  m_AnchorMin: {x: 0, y: 0.36800003}
+  m_AnchorMax: {x: 0.99635416, y: 1}
+  m_AnchoredPosition: {x: 6.578491, y: -3.195984}
+  m_SizeDelta: {x: -19.157, y: -4.392}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1813633199
 MonoBehaviour:
@@ -3906,6 +3956,36 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1813633197}
   m_CullTransparentMesh: 1
+--- !u!114 &1813633201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1813633197}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1aa08ab6e0800fa44ae55d278d1423e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Content: {fileID: 355537615}
+  m_Horizontal: 0
+  m_Vertical: 1
+  m_MovementType: 1
+  m_Elasticity: 0.1
+  m_Inertia: 1
+  m_DecelerationRate: 0.135
+  m_ScrollSensitivity: 1
+  m_Viewport: {fileID: 0}
+  m_HorizontalScrollbar: {fileID: 0}
+  m_VerticalScrollbar: {fileID: 0}
+  m_HorizontalScrollbarVisibility: 0
+  m_VerticalScrollbarVisibility: 0
+  m_HorizontalScrollbarSpacing: 0
+  m_VerticalScrollbarSpacing: 0
+  m_OnValueChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1857050938
 GameObject:
   m_ObjectHideFlags: 0
@@ -4269,8 +4349,8 @@ RectTransform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 195259873}
   - {fileID: 963194228}
   - {fileID: 705507995}
-  - {fileID: 195259873}
   - {fileID: 134952913}
   - {fileID: 214725318}
