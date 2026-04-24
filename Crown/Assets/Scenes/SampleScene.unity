@@ -412,7 +412,7 @@ MonoBehaviour:
   - npcName: Princess
     surfaceRequest: I brought you a Book of Ancient Lineage to study.
     hiddenMotive: She is secretly telling you the General's true loyalty.
-    portrait: {fileID: 0}
+    portrait: {fileID: 21300000, guid: 8ef72f8ae06e86646bc2954bba27f800, type: 3}
     maxTurns: 2
   - npcName: Minister
     surfaceRequest: We should grant trade monopolies to our loyal nobles.
@@ -437,7 +437,7 @@ MonoBehaviour:
   - npcName: Princess
     surfaceRequest: The secret passage is blocked. You must face him now.
     hiddenMotive: She tells you the Uncle has the death warrant ready.
-    portrait: {fileID: 0}
+    portrait: {fileID: 21300000, guid: 8ef72f8ae06e86646bc2954bba27f800, type: 3}
     maxTurns: 2
   - npcName: Regent
     surfaceRequest: Sign the abdication paper. For the safety of the realm.
