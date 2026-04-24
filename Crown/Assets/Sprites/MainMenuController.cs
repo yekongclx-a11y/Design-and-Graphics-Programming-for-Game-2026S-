@@ -24,7 +24,7 @@ public class MainMenuController : MonoBehaviour
 
     public void OnStartClicked()
     {
-        SceneManager.LoadScene("SampleScene");
+        SceneManager.LoadScene("PrologueScene");
     }
 
     public void OnSettingsClicked()
