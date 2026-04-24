@@ -413,7 +413,7 @@ MonoBehaviour:
     surfaceRequest: I brought you a Book of Ancient Lineage to study.
     hiddenMotive: She is secretly telling you the General's true loyalty.
     portrait: {fileID: 0}
-    maxTurns: 3
+    maxTurns: 2
   - npcName: Minister
     surfaceRequest: We should grant trade monopolies to our loyal nobles.
     hiddenMotive: Enrich the Regent's inner circle while bankrupting the Crown.
@@ -438,7 +438,7 @@ MonoBehaviour:
     surfaceRequest: The secret passage is blocked. You must face him now.
     hiddenMotive: She tells you the Uncle has the death warrant ready.
     portrait: {fileID: 0}
-    maxTurns: 3
+    maxTurns: 2
   - npcName: Regent
     surfaceRequest: Sign the abdication paper. For the safety of the realm.
     hiddenMotive: 'The Final Choice: accept exile, trigger civil war, or die.'

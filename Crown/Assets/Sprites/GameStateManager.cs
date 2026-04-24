@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameStateManager : MonoBehaviour
 {
@@ -57,29 +58,36 @@ public class GameStateManager : MonoBehaviour
 
     void CheckDeathConditions()
     {
-        if (gold <= 0) TriggerEnding("Treasury collapsed. The kingdom starves.");
-        else if (gold >= 100) TriggerEnding("Your wealth threatens the Regent. Tonight, you do not wake.");
-        else if (popularity <= 0) TriggerEnding("The people have had enough. The mob breaches the gates.");
-        else if (popularity >= 100) TriggerEnding("You are too loved. The Regent cannot allow a king the people would die for.");
-        else if (church <= 0) TriggerEnding("The Church declares you heretic. No king survives that.");
-        else if (church >= 100) TriggerEnding("The Church owns you now. You are no longer a king — you are a puppet.");
-        else if (military <= 0) TriggerEnding("The army dissolves. Without swords, a crown is just metal.");
-        else if (military >= 100) TriggerEnding("The General bows to no one now. Not even you.");
+        if (gameOver) return;
+        if (gold <= 0) TriggerEnding("unpaid_guard");
+        else if (gold >= 100) TriggerEnding("golden_target");
+        else if (popularity <= 0) TriggerEnding("mob_verdict");
+        else if (popularity >= 100) TriggerEnding("poisoned_cup");
+        else if (church <= 0) TriggerEnding("heretic_pyre");
+        else if (church >= 100) TriggerEnding("living_saint");
+        else if (military <= 0) TriggerEnding("fallen_gates");
+        else if (military >= 100) TriggerEnding("generals_crown");
         else if (suspicion >= 100) TriggerCoup();
     }
 
-    void TriggerEnding(string message)
+    void TriggerEnding(string endingId)
     {
+        if (gameOver) return;
         gameOver = true;
         AudioManager.Instance.PlayGameOver();
-        Debug.Log("ENDING: " + message);
+        Debug.Log("ENDING: " + endingId);
+        PlayerPrefs.SetString("EndingType", endingId);
+        SceneManager.LoadScene("EndingScene");
     }
 
     void TriggerCoup()
     {
+        if (gameOver) return;
         gameOver = true;
         AudioManager.Instance.PlayGameOver();
         Debug.Log("COUP: The Regent moves.");
+        PlayerPrefs.SetString("EndingType", "the_tower");
+        SceneManager.LoadScene("EndingScene");
     }
 
     public void NextRound()
@@ -100,11 +108,12 @@ public class GameStateManager : MonoBehaviour
             military > 20 && military < 80 &&
             suspicion < 50)
         {
-            Debug.Log("VICTORY: You survived.");
+            PlayerPrefs.SetString("EndingType", "true_coronation");
+            SceneManager.LoadScene("EndingScene");
         }
         else
         {
-            TriggerEnding("You reached the end, but the damage was done.");
+            TriggerEnding("last_word");
         }
     }
 }
