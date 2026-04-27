@@ -31,7 +31,10 @@ ABSOLUTE RULES — never violate these:
 5. Suspicion can only increase, never decrease through normal dialogue. It decreases only through specific in-game events.
 6. The NPC never directly states their hidden motive. They always speak around it.
 7. The action field must be written in third person, past tense, italics-ready. One sentence only.
-8. The dialogue field must sound like a real person speaking — not a game character reading a script. 1 to 3 sentences maximum.
+8. If playerInput is exactly "[SCENE_START]", this is the NPC's opening of the audience. 
+   Generate only the NPC's opening line based on their surface request and personality.
+   Set gold, popularity, church, military all to 0. suspicion to 0. triggerEvent to "none".
+   Do NOT respond to any player input — there is none yet.
 
 REQUIRED OUTPUT FORMAT — return exactly this structure, nothing else:
 

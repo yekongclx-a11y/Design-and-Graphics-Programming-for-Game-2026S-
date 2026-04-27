@@ -21,6 +21,7 @@ public class DialogueSystem : MonoBehaviour
     private NPCData currentNPC;
     private int currentRoundIndex = 0;
     private int currentTurnInRound = 1;
+    private bool isFirstTurn = true;
 
     void Awake()
     {
@@ -36,6 +37,12 @@ public class DialogueSystem : MonoBehaviour
 
     public void StartRound(int roundIndex)
     {
+        // 随机事件在EndRound后触发，这里直接开始
+        StartRoundInternal(roundIndex);
+    }
+
+    void StartRoundInternal(int roundIndex)
+    {
         if (roundIndex >= npcRoster.Count)
         {
             Debug.LogError("Round index out of range.");
@@ -44,19 +51,59 @@ public class DialogueSystem : MonoBehaviour
 
         currentRoundIndex = roundIndex;
         currentTurnInRound = 1;
+        isFirstTurn = true;
         currentNPC = npcRoster[roundIndex];
 
         if (currentNPC.portrait != null)
             UIManager.Instance.SetNPCPortrait(currentNPC.portrait);
 
+        // 显示NPC名字，对话框显示等待状态
         UIManager.Instance.DisplayNPCResponse(currentNPC.npcName, "", "...");
-        UIManager.Instance.SetInputLocked(false);
-        UIManager.Instance.ShowLoading(false);
-        UIManager.Instance.ShowDismissButton(true);
+        UIManager.Instance.SetInputLocked(true);
+        UIManager.Instance.ShowLoading(true);
+        UIManager.Instance.ShowDismissButton(false);
 
         AudioManager.Instance.PlayNpcEnter();
 
-        Debug.Log($"Round {roundIndex + 1} started: {currentNPC.npcName} (max {currentNPC.maxTurns} turns)");
+        Debug.Log($"Round {roundIndex + 1} started: {currentNPC.npcName}");
+
+        // AI生成NPC开场白
+        APIManager.Instance.SendMessage(
+            currentNPC.npcName,
+            currentNPC.surfaceRequest,
+            currentNPC.hiddenMotive,
+            "[SCENE_START]",
+            0,
+            currentNPC.maxTurns,
+            false,
+            OnOpeningResponse
+        );
+    }
+
+    void OnOpeningResponse(AIResponse response)
+    {
+        UIManager.Instance.ShowLoading(false);
+
+        if (response == null)
+        {
+            UIManager.Instance.DisplayNPCResponse(
+                currentNPC.npcName,
+                "",
+                currentNPC.surfaceRequest
+            );
+        }
+        else
+        {
+            UIManager.Instance.DisplayNPCResponse(
+                currentNPC.npcName,
+                response.action,
+                response.dialogue
+            );
+        }
+
+        // 开场白显示完毕，解锁输入框
+        UIManager.Instance.SetInputLocked(false);
+        UIManager.Instance.ShowDismissButton(true);
     }
 
     public void SubmitPlayerInput(string playerInput)
@@ -89,6 +136,7 @@ public class DialogueSystem : MonoBehaviour
         );
 
         currentTurnInRound++;
+        isFirstTurn = false;
     }
 
     public void SubmitDismiss()
@@ -231,11 +279,28 @@ public class DialogueSystem : MonoBehaviour
     void EndRound()
     {
         currentTurnInRound = 1;
+        isFirstTurn = true;
         UIManager.Instance.ShowDismissButton(false);
+        UIManager.Instance.SetInputLocked(true);
 
         if (GameStateManager.Instance.gameOver) return;
 
         int nextIndex = currentRoundIndex + 1;
+
+        // 随机事件在NPC离场后触发
+        bool eventTriggered = EventManager.Instance.TryTriggerEvent(
+            GameStateManager.Instance.currentRound,
+            () => ProceedToNextRound(nextIndex)
+        );
+
+        if (!eventTriggered)
+        {
+            ProceedToNextRound(nextIndex);
+        }
+    }
+
+    void ProceedToNextRound(int nextIndex)
+    {
         if (nextIndex >= npcRoster.Count)
         {
             GameStateManager.Instance.CheckVictory();
@@ -243,6 +308,6 @@ public class DialogueSystem : MonoBehaviour
         }
 
         GameStateManager.Instance.NextRound();
-        StartRound(nextIndex);
+        StartRoundInternal(nextIndex);
     }
 }
