@@ -31,6 +31,9 @@ public class UIManager : MonoBehaviour
     [Header("NPC Portrait")]
     public Image npcPortrait;
 
+    [Header("Special")]
+    public Sprite regentPortrait;
+
     [Header("Round Info")]
     public TextMeshProUGUI roundText;
 
@@ -109,6 +112,7 @@ public class UIManager : MonoBehaviour
     {
         if (npcNameText) npcNameText.text = "The Regent";
         if (dialogueText) dialogueText.text = "<i>(He steps forward, silencing the room.)</i>\n" + uncleMessage;
+        if (regentPortrait != null) SetNPCPortrait(regentPortrait);
         SetInputLocked(true);
         ShowDismissButton(false);
     }

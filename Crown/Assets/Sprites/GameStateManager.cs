@@ -39,6 +39,22 @@ public class GameStateManager : MonoBehaviour
         }
     }
 
+    public void ResetGame()
+    {
+        gold = 50;
+        popularity = 50;
+        church = 50;
+        military = 50;
+        suspicion = 0;
+        currentRound = 1;
+        gameOver = false;
+        affinityMinister = 50;
+        affinityGeneral = 50;
+        affinityBishop = 50;
+        affinityPrincess = 50;
+        affinityCommoner = 50;
+    }
+
     public void UpdateResources(int goldChange, int popularityChange,
                                  int churchChange, int militaryChange,
                                  int suspicionChange)

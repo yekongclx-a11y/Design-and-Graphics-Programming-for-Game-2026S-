@@ -5,6 +5,9 @@ public class GameController : MonoBehaviour
 {
     void Start()
     {
+        GameStateManager.Instance.ResetGame();
+        EventManager.Instance.ResetEvents();
+
         UIManager.Instance.sendButton.onClick.AddListener(OnSendClicked);
         UIManager.Instance.playerInput.onSubmit.AddListener(OnInputSubmit);
 
