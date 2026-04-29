@@ -1,22 +1,22 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Crown.UI;  // ← 新增：ResourceBarUI 在这个命名空间
 
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance;
 
     [Header("Resource Bars")]
-    public Slider goldBar;
-    public Slider popularityBar;
-    public Slider churchBar;
-    public Slider militaryBar;
+    public ResourceBarUI goldBar;
+    public ResourceBarUI popularityBar;
+    public ResourceBarUI churchBar;
+    public ResourceBarUI militaryBar;
 
-    [Header("Resource Labels")]
-    public TextMeshProUGUI goldText;
-    public TextMeshProUGUI popularityText;
-    public TextMeshProUGUI churchText;
-    public TextMeshProUGUI militaryText;
+    // ─────────────────────────────────────────────
+    // ↑ 已删除：旧的 4 个 Slider 字段
+    // ↑ 已删除：旧的 4 个 TextMeshProUGUI Label 字段
+    // ─────────────────────────────────────────────
 
     [Header("Dialogue")]
     public TextMeshProUGUI npcNameText;
@@ -42,22 +42,32 @@ public class UIManager : MonoBehaviour
 
     void Awake()
     {
-       Instance = this;
+        Instance = this;
     }
 
     public void UpdateResourceBars()
     {
         GameStateManager gs = GameStateManager.Instance;
 
-        if (goldBar) goldBar.value = gs.gold;
-        if (popularityBar) popularityBar.value = gs.popularity;
-        if (churchBar) churchBar.value = gs.church;
-        if (militaryBar) militaryBar.value = gs.military;
+        if (goldBar)       goldBar.SetValue(gs.gold);
+        if (popularityBar) popularityBar.SetValue(gs.popularity);
+        if (churchBar)     churchBar.SetValue(gs.church);
+        if (militaryBar)   militaryBar.SetValue(gs.military);
 
-        if (goldText) goldText.text = gs.gold.ToString();
-        if (popularityText) popularityText.text = gs.popularity.ToString();
-        if (churchText) churchText.text = gs.church.ToString();
-        if (militaryText) militaryText.text = gs.military.ToString();
+        if (roundText) roundText.text = "Round " + gs.currentRound + " / " + gs.maxRounds;
+    }
+
+    /// <summary>
+    /// 重置游戏时调用。瞬切到目标值，无动画。
+    /// </summary>
+    public void ResetResourceBars()
+    {
+        GameStateManager gs = GameStateManager.Instance;
+
+        if (goldBar)       goldBar.SetValueImmediate(gs.gold);
+        if (popularityBar) popularityBar.SetValueImmediate(gs.popularity);
+        if (churchBar)     churchBar.SetValueImmediate(gs.church);
+        if (militaryBar)   militaryBar.SetValueImmediate(gs.military);
 
         if (roundText) roundText.text = "Round " + gs.currentRound + " / " + gs.maxRounds;
     }
@@ -108,5 +118,21 @@ public class UIManager : MonoBehaviour
         if (regentPortrait != null) SetNPCPortrait(regentPortrait);
         SetInputLocked(true);
         ShowDismissButton(false);
+    }
+
+    // ─────────────────────────────────────────────
+    // 测试用：按 F1 随机刷新数值，验证动画 + 闪烁效果
+    // 上线前删掉这个方法
+    // ─────────────────────────────────────────────
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.F1))
+        {
+            if (goldBar)       goldBar.SetValue(Random.Range(0, 101));
+            if (popularityBar) popularityBar.SetValue(Random.Range(0, 101));
+            if (churchBar)     churchBar.SetValue(Random.Range(0, 101));
+            if (militaryBar)   militaryBar.SetValue(Random.Range(0, 101));
+            Debug.Log("F1 Test: Random resource values applied");
+        }
     }
 }
