@@ -27,6 +27,7 @@ public class EndingManager : MonoBehaviour
         returnButton.onClick.AddListener(OnReturnClicked);
         string endingId = PlayerPrefs.GetString("EndingType", "last_word");
         ShowEnding(endingId);
+        AudioManager.Instance.PlayEndingMusic();
     }
 
     void ShowEnding(string endingId)
