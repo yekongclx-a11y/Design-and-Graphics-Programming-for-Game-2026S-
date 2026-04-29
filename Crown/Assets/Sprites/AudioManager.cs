@@ -16,7 +16,7 @@ public class AudioManager : MonoBehaviour
     public AudioClip sfxGameOver;
 
     [Header("Settings")]
-    [Range(0f, 1f)] public float musicVolume = 0.5f;
+    [Range(0f, 1f)] public float musicVolume = 0.3f;
     [Range(0f, 1f)] public float sfxVolume = 0.8f;
 
     private AudioSource musicSource;
@@ -50,9 +50,13 @@ public class AudioManager : MonoBehaviour
     public void PlayMusic(AudioClip clip)
     {
         if (clip == null) return;
-        if (musicSource.clip == clip) return;
         musicSource.clip = clip;
         musicSource.Play();
+    }
+
+    public void StopMusic()
+    {
+        musicSource.Stop();
     }
 
     public void PlaySFX(AudioClip clip)
@@ -68,9 +72,4 @@ public class AudioManager : MonoBehaviour
     public void PlayValueUp() => PlaySFX(sfxValueUp);
     public void PlayValueDown() => PlaySFX(sfxValueDown);
     public void PlayGameOver() => PlaySFX(sfxGameOver);
-
-    public void StopMusic()
-    {
-        musicSource.Stop();
-    }
 }

@@ -78,15 +78,7 @@ public class EventManager : MonoBehaviour
 
     void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-        InitializeEvents();
+        Instance = this;
     }
 
     public void ResetEvents()

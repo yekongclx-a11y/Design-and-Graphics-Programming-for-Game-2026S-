@@ -3256,7 +3256,7 @@ MonoBehaviour:
 
     An AI-Driven 2D Throne Simulator
 
-    
+
 
     Graduate
     Game Design Project
@@ -3351,6 +3351,7 @@ GameObject:
   - component: {fileID: 1804277671}
   - component: {fileID: 1804277670}
   - component: {fileID: 1804277674}
+  - component: {fileID: 1804277675}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -3463,6 +3464,27 @@ MonoBehaviour:
   buttonGroup: {fileID: 273647283}
   musicVolumeSlider: {fileID: 603375961}
   sfxVolumeSlider: {fileID: 843737967}
+--- !u!114 &1804277675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1804277669}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ab3f692f11212246ae09048957994a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bgmMain: {fileID: 8300000, guid: ed8400234395fed43b7021aed244e276, type: 3}
+  bgmTheme: {fileID: 8300000, guid: 600888e564e65294a98652ff2b02edcd, type: 3}
+  bgmEnding: {fileID: 8300000, guid: da24b643e584ba44da74b29da534af3b, type: 3}
+  sfxNpcEnter: {fileID: 8300000, guid: 8862ac59426afc04c9ddb3a54248a8ff, type: 3}
+  sfxValueUp: {fileID: 8300000, guid: 54ef599449a50224ca8cf9452676113d, type: 3}
+  sfxValueDown: {fileID: 8300000, guid: 0e80a8cf05ca1f74c8db9768871ff063, type: 3}
+  sfxGameOver: {fileID: 0}
+  musicVolume: 0.3
+  sfxVolume: 0.8
 --- !u!1 &1950488842
 GameObject:
   m_ObjectHideFlags: 0

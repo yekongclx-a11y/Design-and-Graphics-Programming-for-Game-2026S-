@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using TMPro;
 
 public class MainMenuController : MonoBehaviour
 {
@@ -16,14 +15,23 @@ public class MainMenuController : MonoBehaviour
     [Header("Settings")]
     public Slider musicVolumeSlider;
     public Slider sfxVolumeSlider;
+void Start()
+{
+    ShowMain();
+    Debug.Log("AudioManager存在吗: " + (AudioManager.Instance != null));
+    Debug.Log("bgmTheme存在吗: " + (AudioManager.Instance?.bgmTheme != null));
+    Invoke("PlayTheme", 0.1f);
+}
 
-    void Start()
-    {
-        ShowMain();
-    }
-
+void PlayTheme()
+{
+    if (AudioManager.Instance != null)
+        AudioManager.Instance.PlayThemeMusic();
+}
     public void OnStartClicked()
     {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.StopMusic();
         SceneManager.LoadScene("PrologueScene");
     }
 
