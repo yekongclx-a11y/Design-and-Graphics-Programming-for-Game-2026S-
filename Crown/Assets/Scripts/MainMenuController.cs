@@ -32,7 +32,7 @@ void PlayTheme()
     {
         if (AudioManager.Instance != null)
             AudioManager.Instance.StopMusic();
-        SceneManager.LoadScene("PrologueScene");
+        SceneManager.LoadScene("OpeningCG");
     }
 
     public void OnSettingsClicked()
