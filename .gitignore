@@ -28,3 +28,14 @@ Crown/.vs/
 # ===== 系统文件 =====
 .DS_Store
 Thumbs.db
+
+
+# StreamingAssets local-only secrets
+Crown/Assets/StreamingAssets/.env
+Crown/Assets/StreamingAssets/.env.meta
+# Backup files
+*.bak
+*.bak.meta
+
+# Setup scripts (local only)
+setup_streaming_assets.ps1

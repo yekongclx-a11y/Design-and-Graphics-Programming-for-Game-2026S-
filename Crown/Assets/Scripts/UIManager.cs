@@ -124,15 +124,6 @@ public class UIManager : MonoBehaviour
     // 测试用：按 F1 随机刷新数值，验证动画 + 闪烁效果
     // 上线前删掉这个方法
     // ─────────────────────────────────────────────
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.F1))
-        {
-            if (goldBar)       goldBar.SetValue(Random.Range(0, 101));
-            if (popularityBar) popularityBar.SetValue(Random.Range(0, 101));
-            if (churchBar)     churchBar.SetValue(Random.Range(0, 101));
-            if (militaryBar)   militaryBar.SetValue(Random.Range(0, 101));
-            Debug.Log("F1 Test: Random resource values applied");
-        }
-    }
+ 
+    
 }

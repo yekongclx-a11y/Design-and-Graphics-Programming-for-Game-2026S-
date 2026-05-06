@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Networking;
 using System.Collections;
 using System.Text;
@@ -31,7 +31,7 @@ public class APIManager : MonoBehaviour
 
     void LoadEnv()
     {
-        string envPath = Path.Combine(Application.dataPath, "../../.env");
+        string envPath = Path.Combine(Application.streamingAssetsPath, ".env");
         if (File.Exists(envPath))
         {
             string[] lines = File.ReadAllLines(envPath);
@@ -52,8 +52,7 @@ public class APIManager : MonoBehaviour
 
     void LoadPrompt()
     {
-        string promptPath = Path.Combine(Application.dataPath,
-                            "../../Docs/Prompts/prompt_v1.txt");
+        string promptPath = Path.Combine(Application.streamingAssetsPath, "prompt_v1.txt");
         if (File.Exists(promptPath))
         {
             systemPrompt = File.ReadAllText(promptPath, Encoding.UTF8);
