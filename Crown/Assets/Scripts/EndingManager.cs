@@ -29,7 +29,7 @@ public class EndingManager : MonoBehaviour
             returnButton.onClick.AddListener(OnReturnClicked);
         }
         
-        // 从持久化数据里拿到真正的结局ID，默认兜底为 "last_word"
+        // 🌟 核心修正：与主城区的写入钥匙 "EndingType" 绝对对齐！
         string endingId = PlayerPrefs.GetString("EndingType", "last_word");
         Debug.Log($"[EndingSystem] 成功进入结局场景，正在读取到的结局ID为: {endingId}");
         
@@ -43,7 +43,8 @@ public class EndingManager : MonoBehaviour
 
     void ShowEnding(string endingId)
     {
-        switch (endingId)
+        // 抹除大小写影响，防止 "The_Tower" 和 "the_tower" 对不上
+        switch (endingId.ToLower().Trim())
         {
             case "unpaid_guard":
                 titleText.text = "The Unpaid Guard";
@@ -93,8 +94,10 @@ public class EndingManager : MonoBehaviour
                 SetBackground(bgGeneral);
                 break;
 
+            // 🌟 完美合流：这就是叔叔的软禁高塔结局！
             case "the_tower":
-                titleText.text = "The Tower";
+            case "uncle_usurpation": // 双保险：即使主城区传这个暗号，也完美缩进高塔结局
+                titleText.text = "The Regent's Tower";
                 endingText.text = "He came in the night, as you knew he would.\n\"For your own safety,\" he said. He was always so considerate.\nThe tower has a fine view of the city.\nYou have had years to memorize it.";
                 SetBackground(bgTower);
                 break;
@@ -119,21 +122,14 @@ public class EndingManager : MonoBehaviour
         }
     }
 
-    // 双保险替换函数：彻底排除重名、禁用、透明度为0等场景污染隐患
     void SetBackground(Sprite sprite)
     {
         if (background != null && sprite != null)
         {
-            // 1. 强行把这个物体激活（防止它在层级树里被顺手禁用了）
             background.gameObject.SetActive(true); 
-            
-            // 2. 确保不透明度为100%（防止在Canvas复制时被调成了全透明）
             background.color = Color.white; 
-            
-            // 3. 换图
             background.sprite = sprite;
-            
-            Debug.Log($"[SUCCESS] 结局背景图切换成功！当前图片名为: {sprite.name}，承载图片的组件物体叫: {background.gameObject.name}");
+            Debug.Log($"[SUCCESS] 结局背景图切换成功！当前图片名为: {sprite.name}");
         }
         else
         {

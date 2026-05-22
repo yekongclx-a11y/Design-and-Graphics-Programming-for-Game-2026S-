@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class DialogueSystem : MonoBehaviour
 {
@@ -8,43 +10,47 @@ public class DialogueSystem : MonoBehaviour
     [System.Serializable]
     public class NPCData
     {
-        public string npcName;
+        public string npcName;       // NPC 识别标识
+        public string titleName;     // UI 展现的阶级/头衔
         public string surfaceRequest;
         public string hiddenMotive;
         public Sprite portrait;
-        public int maxTurns = 3;
+        public int maxTurns = 3;     // 单轮对话最大回合上限
     }
 
-    [Header("NPC Roster")]
+    [Header("NPC Roster Configuration")]
     public List<NPCData> npcRoster = new List<NPCData>();
+
+    [Header("Scene Transition Configuration")]
+    [SerializeField] private string endingSceneName = "EndingScene"; // 目标结算场景名称
 
     private NPCData currentNPC;
     private int currentRoundIndex = 0;
     private int currentTurnInRound = 1;
     private bool isFirstTurn = true;
+    private bool isTransitioningRound = false; // 场景/回合状态机切换锁
 
     void Awake()
     {
-        Instance = this;
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
     }
 
     public void StartRound(int roundIndex)
     {
-        // 【后期优化核心】：如果玩家是从头重新玩（Round 1），必须强行洗掉大模型的过往记忆，防止世界线污染
+        // 游戏首次启动或重置时，清理远端大模型历史上下文
         if (roundIndex == 0 && APIManager.Instance != null)
         {
             APIManager.Instance.ClearGameMemory();
         }
-
-        // 随机事件在EndRound后触发，这里直接开始
         StartRoundInternal(roundIndex);
     }
 
-    void StartRoundInternal(int roundIndex)
+    private void StartRoundInternal(int roundIndex)
     {
         if (roundIndex >= npcRoster.Count)
         {
-            Debug.LogError("Round index out of range.");
+            Debug.LogError($"[DialogueSystem] Round index {roundIndex} out of range.");
             return;
         }
 
@@ -52,22 +58,29 @@ public class DialogueSystem : MonoBehaviour
         currentTurnInRound = 1;
         isFirstTurn = true;
         currentNPC = npcRoster[roundIndex];
+        isTransitioningRound = false;
 
         if (currentNPC.portrait != null)
             UIManager.Instance.SetNPCPortrait(currentNPC.portrait);
 
-        // 显示NPC名字，对话框显示等待状态
-        UIManager.Instance.DisplayNPCResponse(currentNPC.npcName, "", "...");
+        // 初始化输入框状态，杜绝测试占位文本延迟显示问题
+        if (UIManager.Instance.playerInput != null)
+        {
+            UIManager.Instance.playerInput.text = string.Empty;
+        }
         UIManager.Instance.SetInputLocked(true);
         UIManager.Instance.ShowLoading(true);
-        UIManager.Instance.ShowDismissButton(false);
 
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayNpcEnter();
 
-        Debug.Log($"Round {roundIndex + 1} started: {currentNPC.npcName}");
+        // 注册当前在场 NPC 数据至鼠标指针悬停交互拦截器
+        NPCHoverHandler hoverHandler = FindObjectOfType<NPCHoverHandler>();
+        if (hoverHandler != null) 
+        {
+            hoverHandler.SetCurrentNPC(currentNPC.npcName, currentNPC.titleName);
+        }
 
-        // AI生成NPC开场白
         APIManager.Instance.SendMessage(
             currentNPC.npcName,
             currentNPC.surfaceRequest,
@@ -83,48 +96,29 @@ public class DialogueSystem : MonoBehaviour
     void OnOpeningResponse(AIResponse response)
     {
         UIManager.Instance.ShowLoading(false);
+        if (UIManager.Instance.playerInput != null) 
+        {
+            UIManager.Instance.playerInput.text = string.Empty;
+        }
 
         if (response == null)
         {
-            UIManager.Instance.DisplayNPCResponse(
-                currentNPC.npcName,
-                "",
-                currentNPC.surfaceRequest
-            );
+            UIManager.Instance.DisplayNPCResponse(currentNPC.npcName, "", currentNPC.surfaceRequest);
         }
         else
         {
-            // 【后期优化】：即使是开场白，AI也可能会根据历史政治摘要产生好感度基础波动，直接更新
             UpdateNPCAffinity(currentNPC.npcName, response.affinityChange);
-
-            UIManager.Instance.DisplayNPCResponse(
-                currentNPC.npcName,
-                response.action,
-                response.dialogue
-            );
+            UIManager.Instance.DisplayNPCResponse(currentNPC.npcName, response.action, response.dialogue);
         }
-
-        // 开场白显示完毕，解锁输入框
         UIManager.Instance.SetInputLocked(false);
-        UIManager.Instance.ShowDismissButton(true);
     }
 
     public void SubmitPlayerInput(string playerInput)
     {
-        if (string.IsNullOrEmpty(playerInput))
-        {
-            Debug.LogWarning("Player input is empty.");
-            return;
-        }
-
-        if (GameStateManager.Instance.gameOver)
-        {
-            Debug.LogWarning("Game is over.");
-            return;
-        }
+        if (isTransitioningRound || GameStateManager.Instance.gameOver) return;
+        if (string.IsNullOrEmpty(playerInput)) return;
 
         UIManager.Instance.SetInputLocked(true);
-        UIManager.Instance.ShowDismissButton(false);
         UIManager.Instance.ShowLoading(true);
 
         APIManager.Instance.SendMessage(
@@ -142,205 +136,246 @@ public class DialogueSystem : MonoBehaviour
         isFirstTurn = false;
     }
 
-    public void SubmitDismiss()
-    {
-        if (GameStateManager.Instance.gameOver) return;
-
-        UIManager.Instance.SetInputLocked(true);
-        UIManager.Instance.ShowDismissButton(false);
-        UIManager.Instance.ShowLoading(true);
-
-        string dismissInput = "The King says nothing and waves his hand in dismissal. Give your parting action, a final line, and settle the values.";
-
-        APIManager.Instance.SendMessage(
-            currentNPC.npcName,
-            currentNPC.surfaceRequest,
-            currentNPC.hiddenMotive,
-            dismissInput,
-            currentTurnInRound,
-            currentNPC.maxTurns,
-            true,
-            OnAPIResponse
-        );
-    }
-
     void OnAPIResponse(AIResponse response)
     {
         UIManager.Instance.ShowLoading(false);
 
+        // 异步数据回调成功，即刻清空输入栏以防残留字符显示闪烁
+        if (UIManager.Instance.playerInput != null)
+        {
+            UIManager.Instance.playerInput.text = string.Empty;
+        }
+
         if (response == null)
         {
-            UIManager.Instance.DisplayNPCResponse(
-                currentNPC.npcName,
-                "...",
-                "Something is wrong. The court falls silent."
-            );
+            UIManager.Instance.DisplayNPCResponse(currentNPC.npcName, "...", "Connection lost.");
             UIManager.Instance.SetInputLocked(false);
-            UIManager.Instance.ShowDismissButton(true);
             return;
         }
 
         GameStateManager gs = GameStateManager.Instance;
-
-        // 【核心机制：动态分发、更新对应当前NPC的个人好感度（Affinity）矩阵】
         UpdateNPCAffinity(currentNPC.npcName, response.affinityChange);
 
-        switch (response.triggerEvent)
-        {
-            case "coup_attempt":
-                Debug.Log("TRIGGER: coup_attempt");
-                gs.UpdateResources(0, 0, 0, 0, 20);
-                UIManager.Instance.DisplayNPCResponse(
-                    currentNPC.npcName,
-                    response.action,
-                    response.dialogue
-                );
-                UIManager.Instance.UpdateResourceBars();
-                UIManager.Instance.SetInputLocked(false);
-                UIManager.Instance.ShowDismissButton(true);
-                return;
-
-            case "game_over":
-                Debug.Log("TRIGGER: game_over");
-                UIManager.Instance.DisplayNPCResponse(
-                    currentNPC.npcName,
-                    response.action,
-                    response.dialogue
-                );
-                gs.UpdateResources(response.gold, response.popularity,
-                                   response.church, response.military,
-                                   response.suspicion);
-                UIManager.Instance.UpdateResourceBars();
-                gs.gameOver = true;
-                return;
-
-            case "uncle_intervene":
-                Debug.Log("TRIGGER: uncle_intervene");
-                UIManager.Instance.ShowUncleOverride(
-                    "His Majesty seems fatigued. Allow me to respond on his behalf."
-                );
-                gs.UpdateResources(-5, -5, -5, -5, 20);
-                UIManager.Instance.UpdateResourceBars();
-                EndRound();
-                return;
-
-            case "end_round":
-                Debug.Log("TRIGGER: end_round");
-                UIManager.Instance.DisplayNPCResponse(
-                    currentNPC.npcName,
-                    response.action,
-                    response.dialogue
-                );
-                gs.UpdateResources(response.gold, response.popularity,
-                                   response.church, response.military,
-                                   response.suspicion);
-                UIManager.Instance.UpdateResourceBars();
-                EndRound();
-                return;
-        }
-
-        if (gs.suspicion >= 80)
-        {
-            UIManager.Instance.ShowUncleOverride(
-                "You have nothing left to say, child. The game is over."
-            );
-            gs.gameOver = true;
-            return;
-        }
-        else if (gs.suspicion > 50 && Random.Range(0, 100) < (gs.suspicion - 50) * 2)
-        {
-            UIManager.Instance.ShowUncleOverride(
-                "His Majesty seems fatigued. Allow me to respond on his behalf."
-            );
-            gs.UpdateResources(-5, -5, -5, -5, 5);
-            UIManager.Instance.UpdateResourceBars();
-            EndRound();
-            return;
-        }
-
-        UIManager.Instance.DisplayNPCResponse(
-            currentNPC.npcName,
-            response.action,
-            response.dialogue
-        );
-        gs.UpdateResources(response.gold, response.popularity,
-                           response.church, response.military,
-                           response.suspicion);
+        // ─────────────────────────────────────────────────────────
+        // 核心渲染总线：优先渲染当前在场 NPC 的最终动作及文本，防止状态强切导致的内容吞噬
+        // ─────────────────────────────────────────────────────────
+        UIManager.Instance.DisplayNPCResponse(currentNPC.npcName, response.action, response.dialogue);
+        gs.UpdateResources(response.gold, response.popularity, response.church, response.military, response.suspicion);
         UIManager.Instance.UpdateResourceBars();
 
+        // ─────────────────────────────────────────────────────────
+        // 状态判定总线：将时序延迟推迟至打字机完结与玩家确认点击之后
+        // ─────────────────────────────────────────────────────────
+        
+        // 1. 远端大模型显式触发的事件分支检测
+        if (response.triggerEvent == "coup_attempt")
+        {
+            StartCoroutine(DelayedGameOverRoutine("coup_attempt"));
+            return;
+        }
+        if (response.triggerEvent == "game_over")
+        {
+            StartCoroutine(DelayedGameOverRoutine("last_word"));
+            return;
+        }
+        if (response.triggerEvent == "uncle_intervene")
+        {
+            StartCoroutine(DelayedUncleInterveneRoutine());
+            return;
+        }
+        if (response.triggerEvent == "end_round")
+        {
+            StartCoroutine(DelayedEndRoundRoutine());
+            return;
+        }
+
+        // 2. 本地数据边界拦截（数值爆表级强行触发危机）
+        if (gs.suspicion >= 80)
+        {
+            StartCoroutine(DelayedSuspicionGameOverRoutine());
+            return;
+        }
+        
+        if (gs.suspicion > 50 && Random.Range(0, 100) < (gs.suspicion - 50) * 2)
+        {
+            StartCoroutine(DelayedRandomUncleInterveneRoutine());
+            return;
+        }
+
+        // 3. 常规小回合周期迭代检查
         if (currentTurnInRound > currentNPC.maxTurns)
         {
-            EndRound();
+            StartCoroutine(DelayedEndRoundRoutine());
         }
         else
         {
-            if (!gs.gameOver)
-            {
-                UIManager.Instance.SetInputLocked(false);
-                UIManager.Instance.ShowDismissButton(true);
-            }
+            if (!gs.gameOver) UIManager.Instance.SetInputLocked(false);
         }
     }
 
-    // 【新增后期核心函数：好感度路由转换矩阵】
-    // 将大模型返回的动态变量映射更新到 GameStateManager 对应的长期持久化变量中
+    // 💡 异步管线：处理远端显式干预事件。NPC 嘲讽文本播放完毕并经玩家确认点击后，强切危机角色进场
+    IEnumerator DelayedUncleInterveneRoutine()
+    {
+        isTransitioningRound = true;
+        UIManager.Instance.SetInputLocked(true);
+
+        while (UIManager.Instance.isTyping) yield return null; 
+
+        bool confirmedLeft = false;
+        while (!confirmedLeft)
+        {
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) confirmedLeft = true;
+            yield return null;
+        }
+
+        // 执行本地覆盖渲染，展现截杀危机
+        UIManager.Instance.ShowUncleOverride("Enough of this madness, child! Your words border on heresy. Guards, lead His Majesty back to his chambers—I shall handle the Court myself.");
+        while (UIManager.Instance.isTyping) yield return null;
+
+        bool confirmedRight = false;
+        while (!confirmedRight)
+        {
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) confirmedRight = true;
+            yield return null;
+        }
+
+        isTransitioningRound = false;
+        EndRound(); 
+    }
+
+    // 💡 异步管线：处理本地数值（怀疑度 >50）随机概率截杀
+    IEnumerator DelayedRandomUncleInterveneRoutine()
+    {
+        isTransitioningRound = true;
+        UIManager.Instance.SetInputLocked(true);
+
+        while (UIManager.Instance.isTyping) yield return null; 
+
+        bool confirmedLeft = false;
+        while (!confirmedLeft)
+        {
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) confirmedLeft = true;
+            yield return null;
+        }
+
+        UIManager.Instance.ShowUncleOverride("His Majesty seems fatigued from the long court session. Allow me to respond on his behalf and dismiss the chamber.");
+        GameStateManager.Instance.UpdateResources(-5, -5, -5, -5, 5);
+        UIManager.Instance.UpdateResourceBars();
+        
+        while (UIManager.Instance.isTyping) yield return null;
+
+        bool confirmedRight = false;
+        while (!confirmedRight)
+        {
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) confirmedRight = true;
+            yield return null;
+        }
+
+        isTransitioningRound = false;
+        EndRound();
+    }
+
+    // 💡 异步管线：本地硬上限死局。当前 NPC 吐出遗言，点击后切出篡位剧情，再次点击安全切换至软禁塔结局
+    IEnumerator DelayedSuspicionGameOverRoutine()
+    {
+        isTransitioningRound = true;
+        UIManager.Instance.SetInputLocked(true);
+
+        while (UIManager.Instance.isTyping) yield return null; 
+
+        bool confirmedLeft = false;
+        while (!confirmedLeft)
+        {
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) confirmedLeft = true;
+            yield return null;
+        }
+
+        UIManager.Instance.ShowUncleOverride("You have nothing left to say, child. Your actions have betrayed the crown. The game is over.");
+        while (UIManager.Instance.isTyping) yield return null;
+
+        bool confirmedRight = false;
+        while (!confirmedRight)
+        {
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) confirmedRight = true;
+            yield return null;
+        }
+
+        GameStateManager.Instance.gameOver = true;
+        
+        // 🌟 核心同步锁：持久化存储对接统一终结标识 "the_tower"
+        PlayerPrefs.SetString("EndingType", "the_tower");
+        PlayerPrefs.Save();
+        SceneManager.LoadScene(endingSceneName);
+    }
+
+    // 💡 异步管线：常规小回合结束时的用户点击确认控制
+    IEnumerator DelayedEndRoundRoutine()
+    {
+        isTransitioningRound = true;
+        UIManager.Instance.SetInputLocked(true);
+
+        while (UIManager.Instance.isTyping) yield return null; 
+
+        bool confirmed = false;
+        while (!confirmed)
+        {
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) confirmed = true;
+            yield return null;
+        }
+
+        isTransitioningRound = false;
+        EndRound(); 
+    }
+
+    // 💡 异步管线：常规大模型远端主动中断引发的游戏终止结算跳转
+    IEnumerator DelayedGameOverRoutine(string endingKey)
+    {
+        isTransitioningRound = true;
+        UIManager.Instance.SetInputLocked(true);
+
+        while (UIManager.Instance.isTyping) yield return null; 
+
+        bool confirmed = false;
+        while (!confirmed)
+        {
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) confirmed = true;
+            yield return null;
+        }
+
+        GameStateManager.Instance.gameOver = true;
+        
+        PlayerPrefs.SetString("EndingType", endingKey);
+        PlayerPrefs.Save();
+        SceneManager.LoadScene(endingSceneName); 
+    }
+
     private void UpdateNPCAffinity(string npcName, int changeValue)
     {
         if (changeValue == 0) return;
-
         GameStateManager gs = GameStateManager.Instance;
-        if (gs == null) return;
-
-        // 根据名称模糊匹配或精确判断，动态将好感涨跌克扣进对应的变量里
         string lowerName = npcName.ToLower();
-        if (lowerName.Contains("minister"))
-        {
-            gs.affinityMinister = Mathf.Clamp(gs.affinityMinister + changeValue, 0, 100);
-            Debug.Log($"[AffinitySystem] 大臣好感度变动 {changeValue}，当前总值: {gs.affinityMinister}");
-        }
-        else if (lowerName.Contains("general"))
-        {
-            gs.affinityGeneral = Mathf.Clamp(gs.affinityGeneral + changeValue, 0, 100);
-            Debug.Log($"[AffinitySystem] 将军好感度变动 {changeValue}，当前总值: {gs.affinityGeneral}");
-        }
-        else if (lowerName.Contains("bishop"))
-        {
-            gs.affinityBishop = Mathf.Clamp(gs.affinityBishop + changeValue, 0, 100);
-            Debug.Log($"[AffinitySystem] 主教好感度变动 {changeValue}，当前总值: {gs.affinityBishop}");
-        }
-        else if (lowerName.Contains("princess"))
-        {
-            gs.affinityPrincess = Mathf.Clamp(gs.affinityPrincess + changeValue, 0, 100);
-            Debug.Log($"[AffinitySystem] 公主好感度变动 {changeValue}，当前总值: {gs.affinityPrincess}");
-        }
-        else if (lowerName.Contains("commoner") || lowerName.Contains("peasant"))
-        {
-            gs.affinityCommoner = Mathf.Clamp(gs.affinityCommoner + changeValue, 0, 100);
-            Debug.Log($"[AffinitySystem] 平民好感度变动 {changeValue}，当前总值: {gs.affinityCommoner}");
-        }
+        if (lowerName.Contains("minister")) gs.affinityMinister = Mathf.Clamp(gs.affinityMinister + changeValue, 0, 100);
+        else if (lowerName.Contains("general")) gs.affinityGeneral = Mathf.Clamp(gs.affinityGeneral + changeValue, 0, 100);
+        else if (lowerName.Contains("bishop")) gs.affinityBishop = Mathf.Clamp(gs.affinityBishop + changeValue, 0, 100);
+        else if (lowerName.Contains("princess")) gs.affinityPrincess = Mathf.Clamp(gs.affinityPrincess + changeValue, 0, 100);
+        else if (lowerName.Contains("commoner")) gs.affinityCommoner = Mathf.Clamp(gs.affinityCommoner + changeValue, 0, 100);
     }
 
     void EndRound()
     {
         currentTurnInRound = 1;
         isFirstTurn = true;
-        UIManager.Instance.ShowDismissButton(false);
         UIManager.Instance.SetInputLocked(true);
 
         if (GameStateManager.Instance.gameOver) return;
 
         int nextIndex = currentRoundIndex + 1;
-
-        // 随机事件在NPC离场后触发
         bool eventTriggered = EventManager.Instance.TryTriggerEvent(
             GameStateManager.Instance.currentRound,
             () => ProceedToNextRound(nextIndex)
         );
 
-        if (!eventTriggered)
-        {
-            ProceedToNextRound(nextIndex);
-        }
+        if (!eventTriggered) ProceedToNextRound(nextIndex);
     }
 
     void ProceedToNextRound(int nextIndex)
@@ -350,7 +385,6 @@ public class DialogueSystem : MonoBehaviour
             GameStateManager.Instance.CheckVictory();
             return;
         }
-
         GameStateManager.Instance.NextRound();
         StartRoundInternal(nextIndex);
     }
