@@ -24,10 +24,21 @@ public class EndingManager : MonoBehaviour
 
     void Start()
     {
-        returnButton.onClick.AddListener(OnReturnClicked);
+        if (returnButton != null)
+        {
+            returnButton.onClick.AddListener(OnReturnClicked);
+        }
+        
+        // 从持久化数据里拿到真正的结局ID，默认兜底为 "last_word"
         string endingId = PlayerPrefs.GetString("EndingType", "last_word");
+        Debug.Log($"[EndingSystem] 成功进入结局场景，正在读取到的结局ID为: {endingId}");
+        
         ShowEnding(endingId);
-        AudioManager.Instance.PlayEndingMusic();
+        
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayEndingMusic();
+        }
     }
 
     void ShowEnding(string endingId)
@@ -108,10 +119,27 @@ public class EndingManager : MonoBehaviour
         }
     }
 
+    // 双保险替换函数：彻底排除重名、禁用、透明度为0等场景污染隐患
     void SetBackground(Sprite sprite)
     {
-        if (background && sprite != null)
+        if (background != null && sprite != null)
+        {
+            // 1. 强行把这个物体激活（防止它在层级树里被顺手禁用了）
+            background.gameObject.SetActive(true); 
+            
+            // 2. 确保不透明度为100%（防止在Canvas复制时被调成了全透明）
+            background.color = Color.white; 
+            
+            // 3. 换图
             background.sprite = sprite;
+            
+            Debug.Log($"[SUCCESS] 结局背景图切换成功！当前图片名为: {sprite.name}，承载图片的组件物体叫: {background.gameObject.name}");
+        }
+        else
+        {
+            if (background == null) Debug.LogError("[ERROR] 结局换图失败：Inspector 上的 Background 槽位没拖进任何组件！");
+            if (sprite == null) Debug.LogError("[ERROR] 结局换图失败：当前结局对应的 Sprite 素材在槽位里是空的(None)！");
+        }
     }
 
     void OnReturnClicked()

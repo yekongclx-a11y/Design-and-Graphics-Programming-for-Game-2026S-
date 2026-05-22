@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.Networking;
 using System.Collections;
+using System.Collections.Generic; // 用于维护长线剧情记忆链
 using System.Text;
 using System.IO;
 using Newtonsoft.Json;
@@ -13,6 +14,10 @@ public class APIManager : MonoBehaviour
     private string apiKey = "";
     private string model = "gemini-3.1-flash-lite-preview";
     private string systemPrompt = "";
+
+    // 【长线历史剧情简报池】
+    // 用于存放过往所有回合的政治结果摘要，彻底治好AI的“回合失忆症”
+    private List<string> historicalSummaries = new List<string>();
 
     void Awake()
     {
@@ -27,6 +32,13 @@ public class APIManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
+    }
+
+    // 【对外接口：重置游戏时由 DialogueSystem 强行调用清洗】
+    public void ClearGameMemory()
+    {
+        historicalSummaries.Clear();
+        Debug.Log("[MemorySystem] 游戏历史记忆链已完全清空重置。");
     }
 
     void LoadEnv()
@@ -84,7 +96,8 @@ public class APIManager : MonoBehaviour
     {
         GameStateManager gs = GameStateManager.Instance;
 
-        string prompt = systemPrompt
+        // 1. 将纯规则指令替换留给 systemRole 传参
+        string formattedSystemPrompt = systemPrompt
             .Replace("{currentRound}", gs.currentRound.ToString())
             .Replace("{gold}", gs.gold.ToString())
             .Replace("{popularity}", gs.popularity.ToString())
@@ -95,18 +108,37 @@ public class APIManager : MonoBehaviour
             .Replace("{surfaceRequest}", surfaceRequest)
             .Replace("{hiddenMotive}", hiddenMotive)
             .Replace("{currentTurn}", currentTurn.ToString())
-            .Replace("{maxTurns}", maxTurns.ToString())
-            .Replace("{playerInput}", playerInput);
+            .Replace("{maxTurns}", maxTurns.ToString());
 
+        // 2. 动态拼装包含“长线政治记忆”的当前 User 状态包
+        StringBuilder userContentBuilder = new StringBuilder();
+        userContentBuilder.AppendLine("====== GAME STATE MEMORY LAYER ======");
+        if (historicalSummaries.Count == 0)
+        {
+            userContentBuilder.AppendLine("- This is the very beginning of the reign. No past crises recorded yet.");
+        }
+        else
+        {
+            userContentBuilder.AppendLine("- Summary of your past actions and political consequences:");
+            foreach (var summary in historicalSummaries)
+            {
+                userContentBuilder.AppendLine($"  * {summary}");
+            }
+        }
+        userContentBuilder.AppendLine("=====================================");
+        userContentBuilder.AppendLine($"[CURRENT PLAYER INPUT]: \"{playerInput}\"");
+
+        // 3. System 与 User 彻底角色解耦发送
         var requestBody = new
         {
             model = model,
             messages = new[]
             {
-                new { role = "user", content = prompt }
+                new { role = "system", content = formattedSystemPrompt },
+                new { role = "user", content = userContentBuilder.ToString() }
             },
-            max_tokens = 500,
-            temperature = 0.8
+            max_tokens = 600, 
+            temperature = 0.7 
         };
 
         string jsonBody = JsonConvert.SerializeObject(requestBody);
@@ -130,9 +162,19 @@ public class APIManager : MonoBehaviour
                 var response = JsonConvert.DeserializeObject<OpenAIResponse>(responseText);
                 string content = response.choices[0].message.content;
                 content = content.Replace("```json", "").Replace("```", "").Trim();
+                Debug.Log("AI_REPLY:\n" + content);
+                
                 AIResponse aiResponse = JsonConvert.DeserializeObject<AIResponse>(content);
+                
                 if (aiResponse.triggerEvent == null)
                     aiResponse.triggerEvent = "none";
+
+                // 4. 长线记忆自我沉淀：如果解出历史简报，自动压入深水池
+                if (!string.IsNullOrEmpty(aiResponse.historySummary))
+                {
+                    historicalSummaries.Add($"[Round {gs.currentRound}] {aiResponse.historySummary}");
+                }
+
                 onComplete?.Invoke(aiResponse);
             }
             catch (System.Exception e)
@@ -150,6 +192,8 @@ public class APIManager : MonoBehaviour
     }
 }
 
+// ==================== 以下为完全闭环的数据实体解析类 ====================
+
 [System.Serializable]
 public class AIResponse
 {
@@ -160,6 +204,8 @@ public class AIResponse
     public int church;
     public int military;
     public int suspicion;
+    public int affinityChange;     // 个人好感度更新接口
+    public string historySummary;  // 10字历史摘要接口
     public string triggerEvent = "none";
 }
 

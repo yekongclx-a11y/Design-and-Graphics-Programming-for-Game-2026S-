@@ -30,6 +30,12 @@ public class DialogueSystem : MonoBehaviour
 
     public void StartRound(int roundIndex)
     {
+        // 【后期优化核心】：如果玩家是从头重新玩（Round 1），必须强行洗掉大模型的过往记忆，防止世界线污染
+        if (roundIndex == 0 && APIManager.Instance != null)
+        {
+            APIManager.Instance.ClearGameMemory();
+        }
+
         // 随机事件在EndRound后触发，这里直接开始
         StartRoundInternal(roundIndex);
     }
@@ -56,7 +62,8 @@ public class DialogueSystem : MonoBehaviour
         UIManager.Instance.ShowLoading(true);
         UIManager.Instance.ShowDismissButton(false);
 
-        AudioManager.Instance.PlayNpcEnter();
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayNpcEnter();
 
         Debug.Log($"Round {roundIndex + 1} started: {currentNPC.npcName}");
 
@@ -87,6 +94,9 @@ public class DialogueSystem : MonoBehaviour
         }
         else
         {
+            // 【后期优化】：即使是开场白，AI也可能会根据历史政治摘要产生好感度基础波动，直接更新
+            UpdateNPCAffinity(currentNPC.npcName, response.affinityChange);
+
             UIManager.Instance.DisplayNPCResponse(
                 currentNPC.npcName,
                 response.action,
@@ -171,6 +181,9 @@ public class DialogueSystem : MonoBehaviour
         }
 
         GameStateManager gs = GameStateManager.Instance;
+
+        // 【核心机制：动态分发、更新对应当前NPC的个人好感度（Affinity）矩阵】
+        UpdateNPCAffinity(currentNPC.npcName, response.affinityChange);
 
         switch (response.triggerEvent)
         {
@@ -266,6 +279,44 @@ public class DialogueSystem : MonoBehaviour
                 UIManager.Instance.SetInputLocked(false);
                 UIManager.Instance.ShowDismissButton(true);
             }
+        }
+    }
+
+    // 【新增后期核心函数：好感度路由转换矩阵】
+    // 将大模型返回的动态变量映射更新到 GameStateManager 对应的长期持久化变量中
+    private void UpdateNPCAffinity(string npcName, int changeValue)
+    {
+        if (changeValue == 0) return;
+
+        GameStateManager gs = GameStateManager.Instance;
+        if (gs == null) return;
+
+        // 根据名称模糊匹配或精确判断，动态将好感涨跌克扣进对应的变量里
+        string lowerName = npcName.ToLower();
+        if (lowerName.Contains("minister"))
+        {
+            gs.affinityMinister = Mathf.Clamp(gs.affinityMinister + changeValue, 0, 100);
+            Debug.Log($"[AffinitySystem] 大臣好感度变动 {changeValue}，当前总值: {gs.affinityMinister}");
+        }
+        else if (lowerName.Contains("general"))
+        {
+            gs.affinityGeneral = Mathf.Clamp(gs.affinityGeneral + changeValue, 0, 100);
+            Debug.Log($"[AffinitySystem] 将军好感度变动 {changeValue}，当前总值: {gs.affinityGeneral}");
+        }
+        else if (lowerName.Contains("bishop"))
+        {
+            gs.affinityBishop = Mathf.Clamp(gs.affinityBishop + changeValue, 0, 100);
+            Debug.Log($"[AffinitySystem] 主教好感度变动 {changeValue}，当前总值: {gs.affinityBishop}");
+        }
+        else if (lowerName.Contains("princess"))
+        {
+            gs.affinityPrincess = Mathf.Clamp(gs.affinityPrincess + changeValue, 0, 100);
+            Debug.Log($"[AffinitySystem] 公主好感度变动 {changeValue}，当前总值: {gs.affinityPrincess}");
+        }
+        else if (lowerName.Contains("commoner") || lowerName.Contains("peasant"))
+        {
+            gs.affinityCommoner = Mathf.Clamp(gs.affinityCommoner + changeValue, 0, 100);
+            Debug.Log($"[AffinitySystem] 平民好感度变动 {changeValue}，当前总值: {gs.affinityCommoner}");
         }
     }
 
