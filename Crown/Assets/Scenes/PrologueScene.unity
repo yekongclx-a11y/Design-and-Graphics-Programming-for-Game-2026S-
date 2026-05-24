@@ -1136,7 +1136,14 @@ MonoBehaviour:
   speakerText: {fileID: 80976065}
   dialogueText: {fileID: 1000326908}
   continueButton: {fileID: 650146478}
-  voiceLines: []
+  voiceLines:
+  - {fileID: 8300000, guid: 9f5f9177899ed344cbb23001d4d27e5d, type: 3}
+  - {fileID: 8300000, guid: 2401dc126e115a54fa4aa27ae2b331ee, type: 3}
+  - {fileID: 8300000, guid: 490b41867e4aa0c49abe1ab214a9b752, type: 3}
+  - {fileID: 8300000, guid: ef7d4d2cc1316644986bd957a23dcce9, type: 3}
+  - {fileID: 8300000, guid: 9b7ca4dfc56ebf246bed2c52e074003d, type: 3}
+  - {fileID: 8300000, guid: 70f933e0011f80b42941d508e8f45048, type: 3}
+  bedroomBGM: {fileID: 8300000, guid: 87f56af2d2c2aef4d83760dfb63db6f1, type: 3}
 --- !u!1 &1406689840
 GameObject:
   m_ObjectHideFlags: 0
