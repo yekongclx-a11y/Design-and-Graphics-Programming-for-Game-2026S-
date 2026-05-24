@@ -1,9 +1,9 @@
 # Prompt Template Documentation · Prompt 模板说明文档
 ## Crown: The Gilded Cage · 王权
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Status:** Active  
-**Updated:** 2026 — 加入triggerEvent系统和三回合机制  
+**Updated:** 2026-05 — 加入historySummary长期记忆链  
 **Language:** English (AI) / 中文 (Notes)
 
 ---
@@ -62,7 +62,8 @@ Prompt 由四个模块拼接而成，前两个固定不变，后两个每轮动�
   "church": 0,
   "military": -5,
   "suspicion": 10,
-  "triggerEvent": "none"
+  "triggerEvent": "none",
+  "historySummary": "King agreed to grain tax — treasury weakened, minister affinity improved."
 }
 ```
 
@@ -70,14 +71,15 @@ Prompt 由四个模块拼接而成，前两个固定不变，后两个每轮动�
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `action` | string | NPC动作描写，第三人称过去时，1句 |
-| `dialogue` | string | NPC台词，1-3句，有个性，有文学性 |
+| `action` | string | NPC动作描写，第三人称过去时，1句，≤20词 |
+| `dialogue` | string | NPC台词，1-3句，≤50词总计 |
 | `gold` | int | 金库变化，**硬性限制 -20 到 +20** |
 | `popularity` | int | 民心变化，**硬性限制 -20 到 +20** |
 | `church` | int | 教会变化，**硬性限制 -20 到 +20** |
 | `military` | int | 军队变化，**硬性限制 -20 到 +20** |
-| `suspicion` | int | 疑心值变化，**硬性限制 0 到 +20** |
+| `suspicion` | int | 疑心值变化，**硬性限制 0 到 +20**（客户端二次钳制至±8） |
 | `triggerEvent` | string | 事件触发码，见下方说明 |
+| `historySummary` | string | 10-15词政治后果摘要；常规交互或SCENE_START则留空`""` |
 
 ### 数值规则 · Value Rules
 
@@ -86,6 +88,35 @@ Prompt 由四个模块拼接而成，前两个固定不变，后两个每轮动�
 - 明确回应：±8~12
 - 强烈回应：±15~20
 - 超出±20：**严重违规，破坏游戏平衡**
+
+---
+
+## Module 3.5 · historySummary 长期记忆链
+
+**v1.2新增**
+
+**作用：** 在每次玩家回复后，AI生成一条10-15词的政治后果摘要，注入后续轮次的上下文，构成跨轮叙事记忆。  
+**Purpose:** Enables persistent narrative memory across all 12 rounds — the AI remembers what mattered.
+
+### 写入规则
+
+| 情况 | historySummary内容 |
+|------|-------------------|
+| 有政治影响的回复 | 10-15词英文摘要（主谓宾，说清后果） |
+| 常规/无意义回复 | `""` 空字符串 |
+| `[SCENE_START]` 开场 | `""` 空字符串（规则4b明确规定） |
+
+### 示例
+
+```
+"King defied General's request — military loyalty weakened, Regent's suspicion rose."
+"King agreed to raise grain tax — popularity fell, minister's influence grew."
+"King gave non-answer — uncle's impatience increased, faction pressure rising."
+```
+
+### 设计价值
+
+没有这个机制，AI在第12轮时与在第1轮时的行为完全无异。historySummary让整局游戏的每一个决策都留下痕迹，使摄政王的最终评判建立在玩家整局行为的基础上，而非仅凭最后一句话。
 
 ---
 
@@ -208,3 +239,4 @@ Player's response: {playerInput}
 |------|------|------|
 | v1.0 | 2026 | 初始版本，6个NPC角色卡 |
 | v1.1 | 2026 | 加入triggerEvent系统、三回合法则、AI自主判断框架、currentTurn字段 |
+| v1.2 | 2026-05 | 加入historySummary字段（长期叙事记忆链）、Rule 4b、FINAL CHECK更新 |

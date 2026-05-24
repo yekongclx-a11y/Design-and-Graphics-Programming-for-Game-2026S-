@@ -115,7 +115,8 @@
 | UI控制 | `UIManager.cs` | 控制所有界面元素的显示和更新 |
 | 对话系统 | `DialogueSystem.cs` | 控制NPC对话框、输入框逻辑 |
 | 音频管理 | `AudioManager.cs` | 控制背景音乐和音效播放 |
-| 事件管理 | `EventManager.cs` | 权重随机事件系统 |
+| 事件管理 | `EventManager.cs` | JSON驱动随机事件系统，运行时加载events.json |
+| 分辨率管理 | `ResolutionManager.cs` | 1920×1080锁定，零Inspector配置，静态类 |
 | NPC数据 | `NPCData.cs` | 存储所有NPC的人设和当前好感度 |
 | 结局管理 | `EndingManager.cs` | 判断和触发各种结局 |
 

@@ -153,6 +153,9 @@ public class DialogueSystem : MonoBehaviour
             return;
         }
 
+        // 防止场景切换或已有协程运行期间重复响应
+        if (isTransitioningRound || GameStateManager.Instance.gameOver) return;
+
         GameStateManager gs = GameStateManager.Instance;
         UpdateNPCAffinity(currentNPC.npcName, response.affinityChange);
 
@@ -160,7 +163,8 @@ public class DialogueSystem : MonoBehaviour
         // 核心渲染总线：优先渲染当前在场 NPC 的最终动作及文本，防止状态强切导致的内容吞噬
         // ─────────────────────────────────────────────────────────
         UIManager.Instance.DisplayNPCResponse(currentNPC.npcName, response.action, response.dialogue);
-        gs.UpdateResources(response.gold, response.popularity, response.church, response.military, response.suspicion);
+        int cappedSuspicion = Mathf.Clamp(response.suspicion, -8, 8);
+        gs.UpdateResources(response.gold, response.popularity, response.church, response.military, cappedSuspicion);
         UIManager.Instance.UpdateResourceBars();
 
         // ─────────────────────────────────────────────────────────
@@ -190,13 +194,7 @@ public class DialogueSystem : MonoBehaviour
         }
 
         // 2. 本地数据边界拦截（数值爆表级强行触发危机）
-        if (gs.suspicion >= 80)
-        {
-            StartCoroutine(DelayedSuspicionGameOverRoutine());
-            return;
-        }
-        
-        if (gs.suspicion > 50 && Random.Range(0, 100) < (gs.suspicion - 50) * 2)
+        if (gs.suspicion > 65 && Random.Range(0, 100) < (gs.suspicion - 65) * 2)
         {
             StartCoroutine(DelayedRandomUncleInterveneRoutine());
             return;
@@ -259,7 +257,7 @@ public class DialogueSystem : MonoBehaviour
         }
 
         UIManager.Instance.ShowUncleOverride("His Majesty seems fatigued from the long court session. Allow me to respond on his behalf and dismiss the chamber.");
-        GameStateManager.Instance.UpdateResources(-5, -5, -5, -5, 5);
+        GameStateManager.Instance.UpdateResources(-5, -5, -5, -5, 0);
         UIManager.Instance.UpdateResourceBars();
         
         while (UIManager.Instance.isTyping) yield return null;
@@ -368,6 +366,11 @@ public class DialogueSystem : MonoBehaviour
         UIManager.Instance.SetInputLocked(true);
 
         if (GameStateManager.Instance.gameOver) return;
+
+        // 每轮结束后suspicion自然衰减，给玩家喘息空间
+        GameStateManager gs = GameStateManager.Instance;
+        gs.suspicion = Mathf.Clamp(gs.suspicion - 3, 0, 100);
+        UIManager.Instance.UpdateResourceBars();
 
         int nextIndex = currentRoundIndex + 1;
         bool eventTriggered = EventManager.Instance.TryTriggerEvent(
