@@ -9,21 +9,23 @@ public class PrologueController : MonoBehaviour
     public Image princessPortrait;
     public TextMeshProUGUI speakerText;
     public TextMeshProUGUI dialogueText;
-    public Button continueButton; // 注：现在充当视觉提示，逻辑已完全由全局点击总线托管
+    public Button continueButton;
 
     [Header("Audio Configurations")]
-    public AudioClip[] voiceLines;       // 槽位调整至 6，请在面板中依次拖入 01_prologue 至 06_prologue
-    public AudioClip bedroomBGM;         // 专属扩容槽位：把你的舒缓卧室背景音乐拖进这里
+    public AudioClip[] voiceLines;
+    public AudioClip bedroomBGM;
+
+    [Header("Skip")]
+    // Create a Button in PrologueScene, assign it here.
+    // It is automatically hidden for first-time players and shown for returning players.
+    public Button skipButton;
 
     private AudioSource audioSource;
     private int currentLine = 0;
+    private bool isTransitioning = false;
 
-    // ─────────────────────────────────────────────────────────
-    // 📜 沉浸式宫廷玩法教学文本总线（严控字数，防止爆框）
-    // ─────────────────────────────────────────────────────────
-    
     private string[] speakers = {
-        "Princess Elara", "Princess Elara", "Princess Elara", 
+        "Princess Elara", "Princess Elara", "Princess Elara",
         "Princess Elara", "Princess Elara", "Princess Elara"
     };
 
@@ -47,57 +49,57 @@ public class PrologueController : MonoBehaviour
 
     void Start()
     {
-        // 运行时动态挂载大喇叭，负责单独播放未婚妻的配音
         audioSource = gameObject.AddComponent<AudioSource>();
-        
-        // 【自查注入】：一开局立刻统一调度背景音乐
+
         if (AudioManager.Instance != null && bedroomBGM != null)
-        {
             AudioManager.Instance.PlayMusic(bedroomBGM);
+
+        // Skip button: only for players who have BOTH seen the prologue before
+        // AND already configured their API key. This is the true "returning player" state.
+        bool hasPlayed = PlayerPrefs.GetInt("hasEverPlayed", 0) == 1;
+        if (skipButton != null)
+        {
+            skipButton.gameObject.SetActive(hasPlayed);
+            skipButton.onClick.AddListener(OnSkipClicked);
         }
 
-        // 展现开盘第一句话
         ShowLine(0);
     }
 
     void Update()
     {
-        // ─────────────────────────────────────────────────────────
-        // 🖱️ 全局任意交互总线：释放玩家手腕，盲按即可推进剧情
-        // ─────────────────────────────────────────────────────────
+        if (isTransitioning) return;
+
         if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
-        {
             OnContinueClicked();
-        }
+    }
+
+    public void OnSkipClicked()
+    {
+        if (isTransitioning) return;
+        isTransitioning = true;
+        if (audioSource != null) audioSource.Stop();
+        ProceedToGame();
     }
 
     void ShowLine(int index)
     {
-        // 终点检查：如果 6 句台词全部交割完毕，平稳切入上朝场景正片
         if (index >= lines.Length)
         {
-            SceneManager.LoadScene("SampleScene");
+            if (isTransitioning) return;
+            isTransitioning = true;
+            ProceedToGame();
             return;
         }
 
-        // 渲染文本框 UI
-        speakerText.text = speakers[index];
-        dialogueText.text = "<i>(" + actions[index] + ")</i>\n" + lines[index];
+        speakerText.text   = speakers[index];
+        dialogueText.text  = "<i>(" + actions[index] + ")</i>\n" + lines[index];
 
-        // ─────────────────────────────────────────────────────────
-        // 🎙️ 未婚妻同步语音调度中心（防音轨叠加穿帮）
-        // ─────────────────────────────────────────────────────────
         if (voiceLines != null && index < voiceLines.Length && voiceLines[index] != null)
         {
-            // 【核心安全自查】：掐断上一句残存的配音音频，绝不重叠打架
-            audioSource.Stop(); 
-            
-            // 实时动态同步中央司令部的 SFX 音量，保证音量滑块对其有绝对控制权
+            audioSource.Stop();
             if (AudioManager.Instance != null)
-            {
                 audioSource.volume = AudioManager.Instance.sfxVolume;
-            }
-            
             audioSource.clip = voiceLines[index];
             audioSource.Play();
         }
@@ -105,7 +107,34 @@ public class PrologueController : MonoBehaviour
 
     void OnContinueClicked()
     {
+        if (isTransitioning) return;
         currentLine++;
         ShowLine(currentLine);
+    }
+
+    // Single exit point for all prologue completion paths.
+    // Triggers API setup overlay whenever the key is missing (not just on first-ever play).
+    void ProceedToGame()
+    {
+        bool apiKeyMissing = GameConfig.Instance == null ||
+                             string.IsNullOrEmpty(GameConfig.Instance.Config.apiKey);
+        MarkPrologueComplete();
+
+        if (apiKeyMissing && !SessionState.ApiSetupShown)
+        {
+            SessionState.ApiSetupShown = true;
+            FirstRunSetup.Show(() => SceneManager.LoadScene("SampleScene"), isFirstRun: true);
+        }
+        else
+        {
+            SceneManager.LoadScene("SampleScene");
+        }
+    }
+
+    static void MarkPrologueComplete()
+    {
+        SessionState.ProloguePlayed = true;
+        PlayerPrefs.SetInt("hasEverPlayed", 1);
+        PlayerPrefs.Save();
     }
 }
