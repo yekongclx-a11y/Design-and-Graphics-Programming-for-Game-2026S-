@@ -39,3 +39,9 @@ Crown/Assets/StreamingAssets/.env.meta
 
 # Setup scripts (local only)
 setup_streaming_assets.ps1
+
+# Test build expiry — NEVER push to GitHub
+*BuildExpiryController.cs*
+
+# Game manual — distributed with build package only
+GAME_MANUAL.md

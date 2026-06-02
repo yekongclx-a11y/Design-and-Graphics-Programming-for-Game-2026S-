@@ -1,8 +1,8 @@
 # Game Mechanics Design Document · 游戏机制设计文档
 ## Crown: The Gilded Cage · 王权
 
-**Version:** 1.1  
-**Updated:** 2026 — 加入三回合法则、triggerEvent系统、特殊NPC规则
+**Version:** 1.2  
+**Updated:** 2026-05 — 疑心系统重新平衡、随机事件参数更新、historySummary记忆链
 
 ---
 
@@ -172,21 +172,31 @@ AI使用自主判断框架：
 
 ### Suspicion Thresholds · 疑心值节点
 
-#### Suspicion > 50：Voice Suppression · 舅舅盖声
+#### Suspicion > 65：Voice Suppression · 舅舅盖声
 
 玩家正常输入，但舅舅的声音将其盖过：
 
 > *"His Majesty seems fatigued. Allow me to respond on his behalf."*
 
-数值按舅舅的意志变化，玩家本轮完全失控。此机制在疑心值50–80之间概率性触发：概率 = (suspicion - 50) × 2%
+数值按舅舅的意志变化，玩家本轮完全失控。此机制在疑心值超过65后概率性触发：  
+**概率 = (suspicion - 65) × 2%**  
+例：疑心值 75 → 20% 概率触发；疑心值 90 → 50% 概率触发。
 
-#### Suspicion > 80：Input Lock · 输入框锁死
+触发时扣除全体资源 -5（不增加疑心值，为惩罚而非升级）。
 
-输入框变灰锁住，舅舅主动发出文本：
+#### Suspicion = 100：The Tower · 高塔之囚
 
-> *"You have nothing left to say, child. The game is over."*
+疑心值到达上限，触发「高塔之囚」结局（等同于资源死亡条件，由 GameStateManager 统一处理）。
 
-强制触发结局流程。
+#### Per-Round Decay · 每轮衰减
+
+每轮NPC离场后，疑心值自动 **-3**（最低0），为玩家提供喘息空间。  
+预期玩家弧线：谨慎游玩 ~20–35，正常游玩 ~45–65，激进游玩 ~75–95，极端 → 100 触发结局。
+
+#### AI Cap · AI单轮上限
+
+AI每次返回的suspicion值在客户端被钳制至 **±8** 后再应用。  
+Prompt层面的 -20 到 +20 限制仍然生效；客户端的 ±8 钳制是防止单次极端对话引发突然死亡的二次保护层。
 
 ### Hard Death Conditions · 硬性死亡条件
 
@@ -201,11 +211,17 @@ AI使用自主判断框架：
 
 ### 触发规则
 
-- 12轮主线中随机插入2–3次事件
-- **权重随机系统**决定触发哪个事件：
-  - 若某项资源处于危险区间（0–20或80–100），优先触发对应危机事件
-  - 若某NPC好感度处于极值，优先触发好感度关联事件
-  - 否则从全部事件池中随机抽取
+- 12轮主线中最多触发 **8次**事件，预期每局触发6–7次
+- 事件定义外置于 `StreamingAssets/events.json`（22个事件），运行时动态加载
+- 第4轮**强制**触发 `power_vacuum`，第8轮**强制**触发 `blizzard`
+- 疑心值≥60时优先触发 `deadly_compliment`（若尚未触发）
+- 触发概率：第1–8轮 60%，第9–12轮 90%
+- 第1轮即可触发（无蜜月期豁免）
+- **权重系统**决定事件选择：
+  - 任意资源处于危险区间（0–20或80–100）→ 权重 ×1.5
+  - 任意NPC好感度处于极值（≤30或≥80）→ 权重 ×1.5
+  - 两者叠加 → 权重 ×2.25
+  - 否则各事件权重相等
 
 ### Category A · NPC好感度关联事件
 
@@ -270,26 +286,48 @@ AI使用自主判断框架：
 
 ---
 
+## 7. historySummary Memory Chain · 历史摘要记忆链
+
+**v1.2新增**
+
+每次玩家输入后，AI在`historySummary`字段返回一条10–15词的政治后果摘要，注入后续轮次的上下文，形成跨轮叙事记忆。
+
+**格式：** `"King defied General's request — military loyalty weakened, Regent's suspicion rose."`
+
+**触发条件：**
+- 有政治影响的交互 → 写入10–15词摘要
+- 常规/无意义交互，或`[SCENE_START]`开场 → 留空字符串`""`
+
+**设计目的：** 使AI在第12轮时仍能感知第1轮的决策影响，让摄政王的反应和NPC的态度与玩家整局的行为逻辑保持一致。
+
+---
+
 ## 8. Implementation Notes · 技术实现备注
 
-**新增字段（v1.1）：**
-- `NPCData`里加`maxTurns`字段（普通NPC=3，公主=2）
-- `DialogueSystem`里加`currentTurnInRound`变量，每次发送后+1
+**字段说明（v1.1起）：**
+- `NPCData`的`maxTurns`字段（普通NPC=3，公主=2）
+- `DialogueSystem`的`currentTurnInRound`变量，每次发送后+1
 - `GameStateManager`的`[STATE]`传入`{currentTurn}`和`{maxTurns}`
-- `UIManager`加`ShowDismissButton(bool)`方法控制退下按钮显示/隐藏
-- `triggerEvent`处理优先级：先检查事件码，再检查回合数
 
-**triggerEvent处理逻辑：**
+**triggerEvent处理优先级（DialogueSystem.OnAPIResponse）：**
 ```
 收到AI回复后：
-1. 检查triggerEvent值
-2. 若为coup_attempt → 触发危机剧情，疑心值+20
-3. 若为game_over → 直接调用EndingManager
-4. 若为uncle_intervene → 触发ShowUncleOverride
-5. 若为end_round → 调用NextRound()
-6. 若为none且currentTurn >= maxTurns → 强制end_round
-7. 若为none且currentTurn < maxTurns → 解锁输入框，等待下一次输入
+1. 若isTransitioningRound或gameOver → 立即返回（防止重复触发）
+2. 渲染UI（DisplayNPCResponse）→ 钳制suspicion至±8 → 更新资源
+3. 检查triggerEvent：
+   coup_attempt → DelayedGameOverRoutine("coup_attempt")
+   game_over    → DelayedGameOverRoutine("last_word")
+   uncle_intervene → DelayedUncleInterveneRoutine()
+   end_round    → DelayedEndRoundRoutine()
+4. 若suspicion > 65 → 概率 (suspicion-65)×2% 触发 DelayedRandomUncleInterveneRoutine
+5. 若currentTurn > maxTurns → DelayedEndRoundRoutine()
+6. 否则 → 解锁输入框
 ```
+
+**随机事件架构（v1.2）：**
+- 事件数据完全外置至 `StreamingAssets/events.json`，无硬编码事件
+- `EventManager.Awake()`自动加载JSON、自动连线按钮文本（含`includeInactive:true`）、自动连线`eventTitle`/`eventDescription`
+- 按钮文本开启Best Fit（fontSizeMin=10, fontSizeMax=24）防止长句溢出
 
 ---
 
@@ -299,3 +337,4 @@ AI使用自主判断框架：
 |------|------|------|
 | v1.0 | 2026 | 初始版本 |
 | v1.1 | 2026 | 加入三回合法则、triggerEvent系统、特殊NPC规则、退下按钮机制、惩罚机制 |
+| v1.2 | 2026-05 | 疑心系统重平衡（65阈值、±8钳制、-3/轮衰减）、随机事件升级为JSON驱动、historySummary记忆链 |

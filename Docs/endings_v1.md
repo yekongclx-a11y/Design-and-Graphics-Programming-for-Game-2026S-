@@ -1,8 +1,8 @@
 # Endings Design Document · 结局设计文档
 ## Crown: The Gilded Cage · 王权
 
-**Version:** 1.0  
-**Status:** Design Complete
+**Version:** 1.1  
+**Status:** Production Complete
 
 ---
 
@@ -185,7 +185,7 @@
 
 ### 9. 【疑心爆表】高塔之囚 · The Tower
 
-**触发条件：** `suspicion >= 80` → 输入框锁死
+**触发条件：** `suspicion >= 100` → 资源死亡判定（与其余8项资源死亡统一处理）
 
 **剧情：**
 你表现得太聪明，或者太叛逆。摄政王的耐心终于耗尽。他不再伪装，直接发动政变。没有审判，没有公告——你只是悄悄地从公众视野中消失了。高塔的窗口朝北，冬天很冷。
@@ -200,7 +200,9 @@
 
 **推荐背景图：** 高塔、铁窗、夜景
 
-**代码触发：** `suspicion >= 80` → `EndingManager.TriggerEnding("the_tower")`
+**代码触发：** `suspicion >= 100` → `EndingManager.TriggerEnding("the_tower")`
+
+> **Note:** 疑心值不会通过舅舅干预机制（uncle_intervene / DelayedRandomUncleInterveneRoutine）突然跳至100。设计上每轮AI钳制±8、每轮衰减-3，确保疑心值曲线缓慢爬升，给玩家充足的逃脱窗口。
 
 ---
 

@@ -1,41 +1,51 @@
 # Random Events System Design · 随机事件系统设计文档
 ## Crown: The Gilded Cage · 王权
 
-**Version:** 1.0  
-**Status:** Design Complete, Implementation Pending
+**Version:** 1.2  
+**Status:** Production Complete — JSON-Driven Architecture
 
 ---
 
 ## 一、系统概述 · System Overview
 
-随机事件系统在12轮主线对话中随机插入2-3次特殊事件，打破固定节奏，增加游戏深度和不可预测性。
+随机事件系统在12轮主线对话的每轮结束后检查触发，最多插入8次特殊事件，预期每局触发6–7次，使用22个事件池中约1/3的事件，保证多周目差异性。
+
+**事件数据架构：** 完全JSON驱动，定义于 `Crown/Assets/StreamingAssets/events.json`，运行时动态加载，无需重新编译即可扩展事件内容。
 
 **核心设计原则：**
-- 事件不重复：同一局内每个事件最多触发一次
-- 权重触发：根据当前游戏状态决定触发哪个事件
+- 事件不重复：同一局内每个事件最多触发一次（`HashSet<string>` 去重）
+- 权重触发：根据当前游戏状态（资源危险区间、NPC好感度极值）决定触发哪个事件
 - 影响好感度：事件选择同时影响资源和NPC好感度
-- 重要事件三选项：大事件提供三个选择，普通事件二选一
+- 重要事件三选项：大事件提供三个选择，普通事件二选一，无选择事件直接生效
+- 强制触发：第4轮（`power_vacuum`）和第8轮（`blizzard`）无条件触发对应事件
 
 ---
 
 ## 二、触发机制 · Trigger System
 
 ### 触发时机
-每轮NPC登场**之前**检查一次，决定是否插入随机事件。
+每轮NPC离场**之后**、下一轮NPC登场之前检查一次。事件处理完毕后再进入下一轮。
 
-### 触发概率
-- 第1-3轮：不触发（蜜月期，让玩家熟悉基础玩法）
-- 第4-8轮：每轮25%概率触发
-- 第9-12轮：每轮15%概率触发（主线剧情紧张，减少干扰）
-- 全局上限：一局最多触发3次
-
-### 权重选择逻辑
+### 触发优先级
 ```
-触发事件时：
-1. 从未触发过的事件池中筛选
-2. 若任意资源在危险区间（0-20或80-100）→ 权重×3触发对应危机事件
-3. 若任意NPC好感度在极值（≤30或≥80）→ 权重×2触发对应好感度事件
-4. 否则从全部可用事件中随机抽取
+1. 强制触发（无视概率检查）：
+   - 第4轮  → power_vacuum（摄政王病重缺席）
+   - 第8轮  → blizzard（暴雪断绝补给线）
+   - suspicion ≥ 60 且 deadly_compliment 未触发
+     → deadly_compliment（致命的赞美）
+
+2. 概率触发：
+   - 全局上限：eventsTriggered < maxEventsPerGame (8)
+   - 第1–8轮：60% 概率
+   - 第9–12轮：90% 概率
+
+3. 权重选择逻辑：
+   从未触发过的事件池中筛选：
+   ① 若有 conditions.minSuspicion 且当前疑心值不足 → 跳过该事件
+   ② 任意资源处于危险区间（0–20 或 80–100）→ 权重 ×1.5
+   ③ 任意NPC好感度处于极值（≤30 或 ≥80）→ 权重 ×1.5
+   ④ 两者叠加 → 权重 ×2.25
+   ⑤ 按累积权重随机抽取
 ```
 
 ---
@@ -250,19 +260,21 @@
 
 ```csharp
 // 触发控制
-int maxEventsPerGame = 3;        // 每局最多触发次数
-int eventsTriggered = 0;         // 已触发次数
-int minRoundToTrigger = 4;       // 最早触发轮次
-float earlyRoundChance = 0.25f;  // 第4-8轮触发概率
-float lateRoundChance = 0.15f;   // 第9-12轮触发概率
+int maxEventsPerGame = 8;        // 每局最多触发次数
+int eventsTriggered = 0;         // 已触发次数（运行时）
+int minRoundToTrigger = 1;       // 最早触发轮次（无蜜月期豁免）
+float earlyRoundChance = 0.6f;   // 第1-8轮触发概率
+float lateRoundChance = 0.9f;    // 第9-12轮触发概率
 
 // 权重倍率
-float dangerZoneWeight = 3f;     // 资源危险区间权重倍率
-float affinityWeight = 2f;       // 好感度极值权重倍率
+float dangerZoneWeight = 1.5f;   // 资源危险区间权重倍率
+float affinityWeight = 1.5f;     // 好感度极值权重倍率
 
-// 已触发事件记录
+// 已触发事件记录（防重复）
 HashSet<string> triggeredEvents = new HashSet<string>();
 ```
+
+**设计说明：** 高触发频率（60%/90%）确保12轮游戏中平均出现6–7个随机事件，消耗22事件池中约30%，保证多周目差异性。强制触发在第4轮和第8轮提供叙事节奏锚点。
 
 ---
 
@@ -290,41 +302,67 @@ HashSet<string> triggeredEvents = new HashSet<string>();
 
 ## 七、技术实现 · Implementation Notes
 
-**EventData结构：**
-```csharp
-[System.Serializable]
-public class EventData
-{
-    public string eventId;
-    public string title;
-    public string description;
-    public string npcPortraitName;  // 对应立绘名，空字符串=无立绘
-    public EventChoice[] choices;
-    public bool hasChoices;         // false=纯氛围事件，自动触发效果
-}
+**数据架构：** 所有事件定义存放于 `Crown/Assets/StreamingAssets/events.json`，运行时通过 `Newtonsoft.Json` 反序列化加载。
 
-[System.Serializable]
-public class EventChoice
+**EventData JSON结构（对应C#类）：**
+```json
 {
-    public string buttonText;
-    public int goldChange;
-    public int popularityChange;
-    public int churchChange;
-    public int militaryChange;
-    public int suspicionChange;
-    public int affinityChange;      // 对应NPC好感度变化
-    public string affinityTarget;   // "minister"/"general"/"bishop"/"princess"/"commoner"
+  "eventId": "secret_orders",
+  "title": "Secret Orders",
+  "description": "The General sends a trusted aide...",
+  "portraitKey": "general",
+  "hasChoices": true,
+  "randomizeDirect": false,
+  "conditions": { "minSuspicion": 0 },
+  "choices": [
+    {
+      "buttonText": "Accept the meeting",
+      "gold": 0,
+      "popularity": 0,
+      "church": 0,
+      "military": 15,
+      "suspicion": 20,
+      "affinityChange": 10,
+      "affinityTarget": "general"
+    }
+  ],
+  "directGold": 0,
+  "directPopularity": 0,
+  "directChurch": 0,
+  "directMilitary": 0,
+  "directSuspicion": 0
 }
 ```
+
+**关键字段说明：**
+- `hasChoices: false` → 纯氛围事件，直接应用 `direct*` 字段，显示Continue按钮
+- `randomizeDirect: true` → `direct*` 字段在运行时随机化（`Random.Range(-5, 6)`），用于不确定性氛围事件
+- `conditions.minSuspicion` → 事件进入权重选择池的最低疑心值要求
+- `portraitKey` → 对应 `EventManager` 中的立绘字典，空字符串表示无立绘
 
 **触发流程：**
 ```
-每轮开始前：
-1. 检查eventsTriggered < maxEventsPerGame
-2. 检查currentRound >= minRoundToTrigger
-3. 根据轮次决定触发概率
-4. 概率检查通过 → 从未触发事件池中按权重选取
-5. 触发事件 → 显示EventPanel → 等待玩家选择
-6. 处理选择结果（资源+好感度）
-7. 关闭EventPanel → 正常开始当前轮NPC觐见
+每轮NPC离场后（EndRound）：
+1. 检查 eventsTriggered < maxEventsPerGame
+2. 检查强制触发（round==4→power_vacuum，round==8→blizzard）
+3. 检查疑心触发（suspicion≥60→deadly_compliment）
+4. 概率检查（earlyRoundChance / lateRoundChance）
+5. 按权重从未触发事件池中选取
+6. TriggerEvent() → 激活EventPanel及EventContent子节点
+7. 有选择 → 显示选项按钮（自动连线文本，Best Fit开启）
+   无选择 → 应用direct*效果，显示Continue按钮
+8. 玩家选择/确认 → 关闭EventPanel → 回调ProceedToNextRound()
 ```
+
+**自动连线机制：** `EventManager.Awake()` 通过 `GetComponentInChildren<TextMeshProUGUI>(true)`（含非激活对象）自动连线按钮文本和事件面板文本，无需Inspector手动配置。
+
+
+---
+
+## 八、版本记录 · Version History
+
+| 版本 | 日期 | 变更 |
+|------|------|------|
+| v1.0 | 2026 | 初始版本，硬编码事件，参数：max=3, minRound=4, 25%/15% |
+| v1.1 | 2026 | 事件池扩充至22个，分类为A/B/C/D |
+| v1.2 | 2026-05 | 完全JSON驱动，参数升级：max=8, minRound=1, 60%/90%；强制触发机制；条件触发（minSuspicion）；randomizeDirect氛围事件；自动连线UI |
